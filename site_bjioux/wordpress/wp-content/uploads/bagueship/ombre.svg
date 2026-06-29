@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img" aria-label="Ombre ring">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#b8bcc3"/>
+      <stop offset="38%" stop-color="#474d56"/>
+      <stop offset="70%" stop-color="#171a1f"/>
+      <stop offset="100%" stop-color="#0a0b0d"/>
+    </radialGradient>
+    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#13151a"/>
+      <stop offset="100%" stop-color="#050506"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="url(#bg)"/>
+  <circle cx="450" cy="450" r="245" fill="none" stroke="url(#g)" stroke-width="100"/>
+  <circle cx="450" cy="450" r="245" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="16"/>
+</svg>

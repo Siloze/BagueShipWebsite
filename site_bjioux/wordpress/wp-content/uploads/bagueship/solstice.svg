@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img" aria-label="Solstice ring">
+  <defs>
+    <radialGradient id="g" cx="45%" cy="35%" r="68%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#e7c7a0"/>
+      <stop offset="62%" stop-color="#9a6b47"/>
+      <stop offset="100%" stop-color="#26140b"/>
+    </radialGradient>
+    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#18120f"/>
+      <stop offset="100%" stop-color="#050506"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="url(#bg)"/>
+  <circle cx="450" cy="450" r="245" fill="none" stroke="url(#g)" stroke-width="102"/>
+  <circle cx="450" cy="450" r="245" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="16"/>
+</svg>

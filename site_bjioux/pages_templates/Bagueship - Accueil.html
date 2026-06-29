@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bagueship — L'acier, sculpté par la nuit</title>
+<style>
+  :root{
+    --bg:#050506; --panel:#0c0c0e;
+    --ink:#f5f5f7; --ink-dim:#a1a1a6; --ink-faint:#6e6e73;
+    --hair:rgba(255,255,255,.09); --hair-soft:rgba(255,255,255,.055);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--font); -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  ::selection{ background:rgba(245,245,247,.18); }
+  a{ color:inherit; text-decoration:none; }
+
+  /* ── Nav ── */
+  .nav{
+    position:fixed; top:0; left:0; right:0; z-index:60; height:52px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 max(22px,4vw);
+    background:rgba(6,6,8,.5);
+    backdrop-filter:saturate(160%) blur(18px); -webkit-backdrop-filter:saturate(160%) blur(18px);
+    border-bottom:1px solid var(--hair-soft);
+  }
+  .nav .brand{ font-size:15px; font-weight:600; letter-spacing:.34em; padding-left:.34em; }
+  .nav .right{ display:flex; align-items:center; gap:26px; font-size:12.5px; color:var(--ink-dim); font-weight:500; }
+  .nav .right a{ transition:color .25s; }
+  .nav .right a:hover{ color:var(--ink); }
+  @media (max-width:640px){ .hide-sm{ display:none !important; } }
+
+  /* ── Buttons ── */
+  .btn{ display:inline-flex; align-items:center; justify-content:center; font-family:inherit; font-weight:600; font-size:16px; letter-spacing:-.01em; height:52px; padding:0 30px; border-radius:28px; cursor:pointer; border:none; transition:transform .18s cubic-bezier(.16,1,.3,1), background .25s, box-shadow .25s; }
+  .btn-primary{ background:var(--ink); color:#0b0b0d; }
+  .btn-primary:hover{ transform:translateY(-1px); }
+  .btn-ghost{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--hair); }
+  .btn-ghost:hover{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.42); transform:translateY(-1px); }
+
+  .eyebrow{ font-size:12px; letter-spacing:.34em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .section{ position:relative; padding:0 max(22px,4vw); }
+  .wrap{ max-width:1120px; margin:0 auto; }
+
+  /* ── Ring CSS (shared) ── */
+  .ring-scene{ perspective:1300px; perspective-origin:50% 44%; }
+  .ring{ position:relative; transform-style:preserve-3d; will-change:transform; }
+  .band{
+    position:absolute; inset:0; border-radius:50%; backface-visibility:hidden;
+    -webkit-mask:radial-gradient(circle at 50% 50%, transparent 0 60%, #000 62% 80%, transparent 82%);
+    mask:radial-gradient(circle at 50% 50%, transparent 0 60%, #000 62% 80%, transparent 82%);
+  }
+  .rim{
+    position:absolute; inset:0; border-radius:50%; transform:translateZ(2px);
+    -webkit-mask:radial-gradient(circle at 50% 50%, transparent 0 59.2%, #000 60% 61.4%, transparent 62%, transparent 79%, #000 79.6% 81%, transparent 82%);
+    mask:radial-gradient(circle at 50% 50%, transparent 0 59.2%, #000 60% 61.4%, transparent 62%, transparent 79%, #000 79.6% 81%, transparent 82%);
+    background:conic-gradient(from 92deg,rgba(255,255,255,0),rgba(255,255,255,.85),rgba(255,255,255,.05),rgba(255,255,255,.9),rgba(255,255,255,0),rgba(255,255,255,.6),rgba(255,255,255,0),rgba(255,255,255,.8),rgba(255,255,255,0));
+  }
+
+  /* ── Hand display ── */
+  .hand-display{
+    position:relative;
+    --rsize:80px;
+    width:min(44vmin,380px);
+    aspect-ratio:380/520;
+  }
+  .hand-display .ghost-hand{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .hand-display .platform-glow{
+    position:absolute; left:50%; bottom:2%; width:70%; height:10%;
+    transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(150,160,176,.18), transparent 68%);
+    filter:blur(18px); pointer-events:none;
+  }
+  /* Ring slots */
+  .hring{
+    position:absolute;
+    width:var(--rsize); height:var(--rsize);
+    transform:translate(-50%,-50%);
+  }
+  .hring > .ring-scene, .hring .ring{ width:100%; height:100%; }
+  /* Finger positions (percentages of 380×520 viewBox) */
+  .hring.f1{ left:23.7%; top:59.2%; }
+  .hring.f2{ left:37.0%; top:56.8%; }
+  .hring.f3{ left:50.3%; top:56.1%; }
+
+  /* ── Hero ── */
+  .hero{ min-height:100vh; display:flex; align-items:center; padding-top:52px; overflow:hidden; }
+  .hero::before{ content:""; position:absolute; inset:0; background:radial-gradient(58% 60% at 68% 46%, rgba(78,84,96,.2), transparent 60%); pointer-events:none; }
+  .hero-grid{
+    width:100%; max-width:1180px; margin:0 auto;
+    display:grid; grid-template-columns:1.1fr .9fr; align-items:center; gap:20px;
+    position:relative; z-index:2;
+  }
+  .hero-copy{ max-width:560px; }
+  .hero h1{ margin-top:22px; font-size:clamp(44px,6.6vw,92px); font-weight:600; letter-spacing:-.04em; line-height:.98; text-wrap:balance; }
+  .hero .sub{ margin-top:26px; max-width:46ch; color:var(--ink-dim); font-size:clamp(16px,2.1vw,21px); line-height:1.55; font-weight:400; text-wrap:pretty; }
+  .hero .ctas{ margin-top:38px; display:flex; gap:14px; flex-wrap:wrap; }
+  .hero-stage{ height:min(78vh,640px); display:flex; align-items:center; justify-content:center; position:relative; }
+  @media (max-width:880px){
+    .hero-grid{ grid-template-columns:1fr; gap:0; text-align:center; }
+    .hero-copy{ margin:0 auto; }
+    .hero .ctas{ justify-content:center; }
+    .hero-stage{ height:min(54vh,440px); order:-1; }
+    .hero .sub{ margin-left:auto; margin-right:auto; }
+    .hand-display{ width:min(56vw,300px); }
+  }
+
+  /* ── Promise ── */
+  .promise{ padding:18vh 0 14vh; }
+  .promise .head{ max-width:760px; }
+  .promise h2{ margin-top:18px; font-size:clamp(32px,5.2vw,64px); font-weight:600; letter-spacing:-.035em; line-height:1.02; max-width:16ch; text-wrap:balance; }
+  .promise .lead{ margin-top:24px; max-width:52ch; color:var(--ink-dim); font-size:clamp(16px,2.1vw,20px); line-height:1.55; text-wrap:pretty; }
+  .steps{ margin-top:11vh; display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-top:1px solid var(--hair); }
+  .step{ padding:34px 26px 10px 0; border-right:1px solid var(--hair); }
+  .step:last-child{ border-right:none; padding-right:0; }
+  .step .idx{ font-size:13px; letter-spacing:.16em; color:var(--ink-faint); font-weight:600; }
+  .step h3{ margin-top:20px; font-size:clamp(18px,2.4vw,23px); font-weight:600; letter-spacing:-.02em; }
+  .step p{ margin-top:12px; color:var(--ink-dim); font-size:15px; line-height:1.5; }
+  @media (max-width:820px){ .steps{ grid-template-columns:1fr 1fr; } .step{ border-bottom:1px solid var(--hair); padding-right:22px; } .step:nth-child(2n){ border-right:none; } }
+  @media (max-width:480px){ .steps{ grid-template-columns:1fr; } .step{ border-right:none; } }
+  .seal-row{ margin-top:9vh; display:flex; align-items:center; gap:26px; flex-wrap:wrap; }
+  .seal{ width:100px; height:100px; border-radius:50%; flex:none; position:relative; box-shadow:inset 0 0 0 1px var(--hair); display:flex; align-items:center; justify-content:center; }
+  .seal::before{ content:""; position:absolute; inset:8px; border-radius:50%; box-shadow:inset 0 0 0 1px var(--hair-soft); }
+  .seal svg{ width:38px; height:38px; }
+  .seal-row .txt strong{ font-weight:600; font-size:clamp(17px,2.2vw,21px); letter-spacing:-.01em; }
+  .seal-row .txt p{ margin-top:8px; color:var(--ink-dim); font-size:15px; line-height:1.5; max-width:44ch; }
+
+  /* ── Collections rail ── */
+  .collection{ padding:14vh 0 16vh; }
+  .collection .topbar{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:0 max(22px,4vw); max-width:1120px; margin:0 auto; }
+  .collection h2{ font-size:clamp(28px,5vw,58px); font-weight:600; letter-spacing:-.035em; line-height:1.02; margin-top:16px; max-width:16ch; }
+  .arrows{ display:flex; gap:10px; }
+  .arrow{ width:46px; height:46px; border-radius:50%; cursor:pointer; background:transparent; box-shadow:inset 0 0 0 1px var(--hair); color:var(--ink); display:flex; align-items:center; justify-content:center; transition:box-shadow .2s, transform .15s; border:none; }
+  .arrow:hover{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.42); }
+  .arrow:active{ transform:scale(.94); }
+  .arrow[disabled]{ opacity:.3; cursor:default; }
+  .arrow svg{ width:18px; height:18px; }
+  @media (max-width:640px){ .arrows{ display:none; } }
+  .rail{ margin-top:6vh; display:flex; gap:26px; overflow-x:auto; scroll-snap-type:x mandatory; padding:10px max(22px,4vw) 30px; scrollbar-width:none; cursor:grab; }
+  .rail::-webkit-scrollbar{ display:none; }
+  .rail.dragging{ cursor:grabbing; scroll-snap-type:none; }
+
+  /* Collection card */
+  .card{
+    scroll-snap-align:center; flex:0 0 min(72vw,540px); height:min(78vh,620px);
+    border-radius:22px; background:linear-gradient(175deg,#0f1013,#08090a);
+    box-shadow:inset 0 0 0 1px var(--hair-soft);
+    position:relative; overflow:hidden; display:flex; flex-direction:column;
+    transition:box-shadow .3s, transform .3s;
+  }
+  .card:hover{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.2); transform:translateY(-3px); }
+  .card .glow{ position:absolute; inset:0; background:radial-gradient(56% 42% at 50% 36%, rgba(86,92,104,.22), transparent 62%); pointer-events:none; }
+  .card .badge-soon{ position:absolute; top:18px; right:18px; z-index:5; height:24px; padding:0 11px; border-radius:12px; background:rgba(255,255,255,.07); box-shadow:inset 0 0 0 1px var(--hair); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; display:flex; align-items:center; }
+  .card .card-stage{ flex:1; display:flex; align-items:center; justify-content:center; position:relative; z-index:2; }
+  /* mini hand inside cards */
+  .card .hand-display{ width:min(68%,240px); --rsize:52px; }
+  .card .meta{ position:relative; z-index:3; padding:0 30px 30px; }
+  .card .coll-tag{ font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .card .coll-name{ margin-top:10px; font-size:clamp(26px,3.6vw,42px); font-weight:600; letter-spacing:-.03em; }
+  .card .row{ margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .card .price{ font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  .card .more{ font-size:14px; color:var(--ink-dim); font-weight:500; display:inline-flex; align-items:center; gap:7px; transition:color .2s, gap .2s; }
+  .card:hover .more{ color:var(--ink); gap:11px; }
+  .card .more svg{ width:14px; height:14px; }
+  .dots{ display:flex; gap:9px; justify-content:center; margin-top:4vh; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--hair); transition:background .25s, transform .25s; }
+  .dot.on{ background:var(--ink); transform:scale(1.25); }
+
+  /* ── Features ── */
+  .features{ padding:8vh 0 14vh; border-top:1px solid var(--hair-soft); }
+  .trio{ display:grid; grid-template-columns:repeat(3,1fr); gap:54px; }
+  .feat .big{ font-size:clamp(34px,5vw,52px); font-weight:600; letter-spacing:-.03em; line-height:1; }
+  .feat h3{ font-size:clamp(20px,2.6vw,26px); font-weight:600; letter-spacing:-.02em; }
+  .feat p{ margin-top:14px; color:var(--ink-dim); font-size:15.5px; line-height:1.55; max-width:32ch; }
+  @media (max-width:760px){ .trio{ grid-template-columns:1fr; gap:40px; } }
+
+  /* ── Closing ── */
+  .closing{ padding:16vh 0 18vh; text-align:center; }
+  .closing h2{ font-size:clamp(40px,8vw,104px); font-weight:600; letter-spacing:-.045em; line-height:.96; text-wrap:balance; }
+  .closing p{ margin-top:24px; color:var(--ink-dim); font-size:clamp(16px,2.2vw,20px); }
+  .closing .ctas{ margin-top:40px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+
+  .footer{ border-top:1px solid var(--hair-soft); padding:40px max(22px,4vw); }
+  .footer .wrap{ display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+  .footer .fb{ letter-spacing:.34em; color:var(--ink); font-weight:600; font-size:14px; }
+  .footer .links{ display:flex; gap:24px; color:var(--ink-faint); font-size:13px; }
+  .footer .links a:hover{ color:var(--ink-dim); }
+  .footer .copy{ color:var(--ink-faint); font-size:12px; }
+
+  .reveal{ opacity:0; transform:translateY(28px); transition:opacity 1s cubic-bezier(.16,1,.3,1), transform 1s cubic-bezier(.16,1,.3,1); }
+  .reveal.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="#top">BAGUESHIP</a>
+  <div class="right">
+    <a href="Bagueship — Collection.html" class="hide-sm">Collection</a>
+    <a href="#promesse" class="hide-sm">Promesse</a>
+    <a href="Noctis — Page produit.html">Noctis</a>
+    <a href="Bagueship — Panier.html" style="color:var(--ink);font-weight:600;">Panier</a>
+  </div>
+</nav>
+
+<!-- ══ Hero ══ -->
+<header class="hero section" id="top">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <div class="eyebrow">Acier inoxydable · Édition limitée</div>
+      <h1>L'acier,<br/>sculpté par la nuit.</h1>
+      <p class="sub">Des bagues déstructurées, forgées d'un seul bloc d'acier chirurgical. Vérifiées, testées et scellées — une à une — avant de vous parvenir.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="Bagueship — Collection.html">Découvrir la collection</a>
+        <a class="btn btn-ghost" href="#promesse">Notre promesse</a>
+      </div>
+    </div>
+
+    <div class="hero-stage">
+      <!-- Ghost hand + 3 rings (Noctis collection) -->
+      <div class="hand-display" id="heroHand">
+        <!-- Hand silhouette (4 fingers) -->
+        <svg class="ghost-hand" viewBox="0 0 380 520" fill="none">
+          <path d="M 68,315 L 68,116 Q 68,96 90,96 Q 112,96 112,116 L 112,304
+                   Q 112,294 117,290 L 117,74 Q 117,54 140,54 Q 163,54 163,74
+                   L 163,293 Q 164,288 168,285 L 168,80 Q 168,60 191,60
+                   Q 214,60 214,80 L 214,291 Q 215,287 219,284 L 219,140
+                   Q 219,120 237,120 Q 255,120 255,140 L 255,310
+                   Q 268,320 276,358 Q 285,398 280,438 Q 272,474 228,486
+                   Q 192,496 152,492 Q 102,483 79,452 Q 62,423 64,388
+                   Q 66,354 68,315 Z"
+            fill="rgba(255,255,255,.028)" stroke="rgba(255,255,255,.11)"
+            stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        <div class="platform-glow"></div>
+        <!-- Rings: index, middle, ring finger -->
+        <div class="hring f1"><div class="ring-scene"><div class="ring" id="hr1"><div class="rim"></div></div></div></div>
+        <div class="hring f2"><div class="ring-scene"><div class="ring" id="hr2"><div class="rim"></div></div></div></div>
+        <div class="hring f3"><div class="ring-scene"><div class="ring" id="hr3"><div class="rim"></div></div></div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══ Promise ══ -->
+<section class="section promise" id="promesse">
+  <div class="wrap">
+    <div class="head">
+      <div class="eyebrow reveal">Notre promesse</div>
+      <h2 class="reveal">Chaque bague est éprouvée avant de partir.</h2>
+      <p class="lead reveal">Aucune pièce ne quitte l'atelier sans avoir traversé quatre contrôles. Pas de lot, pas de hasard : votre bague est inspectée, portée, vérifiée et scellée à la main.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="idx">01</div><h3>Inspection</h3><p>Examinée à la loupe, défaut par défaut. Géométrie, soudure invisible, arêtes.</p></div>
+      <div class="step reveal"><div class="idx">02</div><h3>Test de port</h3><p>Portée et sollicitée 72 heures pour valider tenue, confort et résistance.</p></div>
+      <div class="step reveal"><div class="idx">03</div><h3>Finition contrôlée</h3><p>Brossage et facettes vérifiés sous lumière rasante, puis nettoyage ultrasons.</p></div>
+      <div class="step reveal"><div class="idx">04</div><h3>Scellée &amp; numérotée</h3><p>Emballée à la main, scellée, accompagnée de son certificat individuel.</p></div>
+    </div>
+    <div class="seal-row reveal">
+      <div class="seal">
+        <svg viewBox="0 0 48 48" fill="none" stroke="#f5f5f7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 24.5 L21 31.5 L34 17.5"></path></svg>
+      </div>
+      <div class="txt">
+        <strong>Certifié, scellé, garanti à vie.</strong>
+        <p>Chaque Noctis porte un numéro unique gravé à l'intérieur de l'anneau et reste couverte aussi longtemps que vous la portez.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Collections ══ -->
+<section class="collection" id="collection">
+  <div class="topbar">
+    <div>
+      <div class="eyebrow reveal">Nos collections</div>
+      <h2 class="reveal">Chaque collection,<br/>un caractère.</h2>
+    </div>
+    <div class="arrows reveal">
+      <button class="arrow" id="prev" aria-label="Précédent" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"></path></svg>
+      </button>
+      <button class="arrow" id="next" aria-label="Suivant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 L16 12 L9 19"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="rail" id="rail"></div>
+  <div class="dots" id="dots"></div>
+</section>
+
+<!-- ══ Features trio ══ -->
+<section class="section features">
+  <div class="wrap trio">
+    <div class="feat reveal"><div class="big">316L</div><p>Acier inoxydable chirurgical. Hypoallergénique, ne ternit pas, ne rouille pas.</p></div>
+    <div class="feat reveal"><h3>Faite main</h3><p>Usinée puis finie à la main en France, en séries volontairement courtes.</p></div>
+    <div class="feat reveal"><h3>Garantie à vie</h3><p>Repolissage et entretien offerts. Une bague pensée pour traverser les années.</p></div>
+  </div>
+</section>
+
+<!-- ══ Closing ══ -->
+<section class="section closing">
+  <div class="wrap">
+    <h2 class="reveal">Trouvez<br/>la vôtre.</h2>
+    <p class="reveal">Disponible en trois finitions, des tailles 48 à 68.</p>
+    <div class="ctas reveal">
+      <a class="btn btn-primary" href="Bagueship — Collection.html">Explorer la collection</a>
+      <a class="btn btn-ghost" href="Noctis — Page produit.html">Configurer Noctis</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="fb">BAGUESHIP</div>
+    <div class="links">
+      <a href="#promesse">Promesse</a>
+      <a href="Bagueship — Collection.html">Collection</a>
+      <a href="Noctis — Page produit.html">Noctis</a>
+    </div>
+    <div class="copy">Conçu en France · © 2026</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Finishes ── */
+  const FACET = 'repeating-conic-gradient(from 0deg,rgba(255,255,255,0) 0 4deg,rgba(255,255,255,.055) 4deg 7.5deg,rgba(0,0,0,.07) 7.5deg 11deg)';
+  const METALS = {
+    steel:'conic-gradient(from 92deg,#2c3036,#c6cbd2,#51565d,#f1f4f8,#383c42,#9aa0a8,#282b30,#d6dbe2,#45494f,#b3b9c1,#2c3036)',
+    noir: 'conic-gradient(from 92deg,#0c0d0f,#4a4e55,#16181b,#6b7077,#0e1012,#3a3e44,#0c0d0f,#5a5f66,#15171a,#454a50,#0c0d0f)',
+    poli: 'conic-gradient(from 92deg,#1b1e23,#f4f7fb,#5a6068,#ffffff,#23272d,#cdd3db,#181b20,#eef2f7,#33373d,#aeb4bc,#1b1e23)',
+    carb: 'conic-gradient(from 92deg,#111214,#2a2d32,#0d0e10,#353a40,#0b0c0e,#1e2126,#111214,#2e3238,#0e0f11,#272b30,#111214)',
+    rose: 'conic-gradient(from 92deg,#3a1e1a,#c8907a,#4a2820,#f0b8a0,#3e2218,#a87060,#342016,#dda08a,#412418,#b87c68,#3a1e1a)'
+  };
+
+  /* ── Build ring ── */
+  function buildRing(el, metalKey, step){
+    const N=18, S=step||1.0;
+    const metal=METALS[metalKey]||metalKey;
+    const rim=el.querySelector('.rim');
+    const frag=document.createDocumentFragment();
+    for(let i=N-1;i>=0;i--){
+      const b=document.createElement('div'); b.className='band';
+      const t=i/(N-1); let br=0.42+0.58*(1-t);
+      if(i===0) br=1.0; if(i===N-1) br=0.55;
+      b.style.background=FACET+', '+metal;
+      b.style.transform='translateZ('+(-i*S)+'px)';
+      b.style.filter='brightness('+br.toFixed(3)+')';
+      frag.appendChild(b);
+    }
+    el.insertBefore(frag, rim);
+  }
+
+  /* ── Animation engine ── */
+  const allRings=[];
+  function reg(el, tilt, speed, startSpin){
+    const obj={el,tilt,speed,spin:startSpin!=null?startSpin:Math.random()*360,yaw:0,pitch:0,boost:0};
+    allRings.push(obj); return obj;
+  }
+  if(!reduce){
+    (function frame(){
+      allRings.forEach(r=>{
+        r.spin+=r.speed*(1+r.boost); r.boost*=.93;
+        r.el.style.transform='rotateX('+(r.tilt+r.pitch).toFixed(2)+'deg) rotateY('+r.yaw.toFixed(2)+'deg) rotateZ('+r.spin.toFixed(2)+'deg)';
+      });
+      requestAnimationFrame(frame);
+    })();
+  }
+
+  /* ── Hero hand (3 rings: Noctis collection) ── */
+  const heroConfig=[
+    {id:'hr1', metal:'steel', tilt:62, speed:.14, start:0},
+    {id:'hr2', metal:'noir',  tilt:60, speed:.12, start:130},
+    {id:'hr3', metal:'poli',  tilt:61, speed:.13, start:250}
+  ];
+  const heroObjs=[];
+  heroConfig.forEach(c=>{
+    const el=document.getElementById(c.id);
+    buildRing(el, c.metal, 0.88);
+    heroObjs.push(reg(el, c.tilt, reduce?0:c.speed, c.start));
+    if(reduce) el.style.transform='rotateX('+c.tilt+'deg) rotateZ('+c.start+'deg)';
+  });
+
+  /* Mouse parallax on hero hand */
+  if(!reduce){
+    const hand=document.getElementById('heroHand');
+    let ty=0, tp=0;
+    hand.addEventListener('pointermove',e=>{
+      const r=hand.getBoundingClientRect();
+      ty=((e.clientX-r.left)/r.width-.5)*22;
+      tp=((e.clientY-r.top)/r.height-.5)*-13;
+    });
+    hand.addEventListener('pointerleave',()=>{ty=0;tp=0;});
+    (function ease(){
+      heroObjs.forEach(o=>{o.yaw+=(ty-o.yaw)*.06;o.pitch+=(tp-o.pitch)*.06;});
+      requestAnimationFrame(ease);
+    })();
+  }
+
+  /* Finger slot positions — same proportions as hero SVG viewBox 380×520 */
+  const FPOS=[
+    {left:'23.7%',top:'59.2%'},
+    {left:'37.0%',top:'56.8%'},
+    {left:'50.3%',top:'56.1%'}
+  ];
+
+  /* Ghost hand SVG (reused in cards) */
+  const HAND_SVG=
+    '<svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 380 520" fill="none">'+
+    '<path d="M 68,315 L 68,116 Q 68,96 90,96 Q 112,96 112,116 L 112,304 Q 112,294 117,290 L 117,74 Q 117,54 140,54 Q 163,54 163,74 L 163,293 Q 164,288 168,285 L 168,80 Q 168,60 191,60 Q 214,60 214,80 L 214,291 Q 215,287 219,284 L 219,140 Q 219,120 237,120 Q 255,120 255,140 L 255,310 Q 268,320 276,358 Q 285,398 280,438 Q 272,474 228,486 Q 192,496 152,492 Q 102,483 79,452 Q 62,423 64,388 Q 66,354 68,315 Z"'+
+    ' fill="rgba(255,255,255,.026)" stroke="rgba(255,255,255,.09)" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+
+  /* ── Collections data ── */
+  const COLLS=[
+    {label:'Collection I',  name:'Noctis',   from:'À partir de 340 €', metals:['steel','noir','poli'], soon:false},
+    {label:'Collection II', name:'Ombre',    from:'À partir de 380 €', metals:['noir','carb'],         soon:true},
+    {label:'Collection III',name:'Solstice', from:'À partir de 420 €', metals:['poli','rose'],         soon:true}
+  ];
+  /* Finger index to use for N metals */
+  const FINGER_IDX={1:[1], 2:[0,2], 3:[0,1,2]};
+
+  const rail=document.getElementById('rail');
+  const dotsEl=document.getElementById('dots');
+
+  COLLS.forEach((coll,ci)=>{
+    const a=document.createElement('a');
+    a.className='card'; a.href='Bagueship — Collection.html';
+    const fIdxs=FINGER_IDX[coll.metals.length]||[0,1,2];
+    let rSlots='';
+    fIdxs.forEach((fi,ri)=>{
+      rSlots+=
+        '<div style="position:absolute;left:'+FPOS[fi].left+';top:'+FPOS[fi].top+';'+
+        'width:var(--rsize,52px);height:var(--rsize,52px);transform:translate(-50%,-50%);">'+
+          '<div class="ring-scene" style="width:100%;height:100%;">'+
+            '<div class="ring" id="cr'+ci+'_'+ri+'" style="width:100%;height:100%;"><div class="rim"></div></div>'+
+          '</div>'+
+        '</div>';
+    });
+    a.innerHTML=
+      '<div class="glow"></div>'+
+      (coll.soon?'<div class="badge-soon">À venir</div>':'')+
+      '<div class="card-stage">'+
+        '<div class="hand-display" style="position:relative;width:min(68%,230px);aspect-ratio:380/520;--rsize:52px;">'+
+          HAND_SVG+rSlots+
+        '</div>'+
+      '</div>'+
+      '<div class="meta">'+
+        '<div class="coll-tag">'+coll.label+'</div>'+
+        '<div class="coll-name">'+coll.name+'</div>'+
+        '<div class="row">'+
+          '<span class="price">'+coll.from+'</span>'+
+          '<span class="more">Découvrir '+
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 L16 12 L9 19"/></svg>'+
+          '</span>'+
+        '</div>'+
+      '</div>';
+    rail.appendChild(a);
+
+    fIdxs.forEach((fi,ri)=>{
+      const el=document.getElementById('cr'+ci+'_'+ri);
+      buildRing(el, coll.metals[ri], 0.65);
+      const obj=reg(el, 61+ri, reduce?0:0.10+ri*.02, ci*60+ri*110);
+      a.addEventListener('pointerenter',()=>{obj.boost=2.4;});
+      if(reduce) el.style.transform='rotateX(61deg) rotateZ('+(ri*100)+'deg)';
+    });
+
+    const d=document.createElement('span'); d.className='dot'+(ci===0?' on':''); dotsEl.appendChild(d);
+  });
+
+  /* Rail nav */
+  const cards=[...rail.querySelectorAll('.card')];
+  const dots=[...dotsEl.children];
+  const prev=document.getElementById('prev');
+  const next=document.getElementById('next');
+  function step(){ return cards[0].offsetWidth+26; }
+  function active(){ return Math.round(rail.scrollLeft/step()); }
+  function sync(){
+    const a=active();
+    dots.forEach((d,i)=>d.classList.toggle('on',i===a));
+    prev.disabled=rail.scrollLeft<8;
+    next.disabled=rail.scrollLeft>rail.scrollWidth-rail.clientWidth-8;
+  }
+  prev.addEventListener('click',()=>rail.scrollBy({left:-step(),behavior:'smooth'}));
+  next.addEventListener('click',()=>rail.scrollBy({left:step(),behavior:'smooth'}));
+  rail.addEventListener('scroll',sync,{passive:true});
+  window.addEventListener('resize',sync);
+  let down=false,moved=false,sx=0,sl=0;
+  rail.addEventListener('pointerdown',e=>{down=true;moved=false;sx=e.clientX;sl=rail.scrollLeft;rail.classList.add('dragging');});
+  rail.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-sx;if(Math.abs(dx)>5)moved=true;rail.scrollLeft=sl-dx;});
+  function endDrag(){if(!down)return;down=false;rail.classList.remove('dragging');}
+  rail.addEventListener('pointerup',endDrag); rail.addEventListener('pointerleave',endDrag); rail.addEventListener('pointercancel',endDrag);
+  cards.forEach(c=>c.addEventListener('click',e=>{if(moved)e.preventDefault();}));
+  setTimeout(sync,60);
+
+  /* Reveal */
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:0.16,rootMargin:'0px 0px -7% 0px'});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(Math.min(i,5)*.06)+'s';io.observe(el);});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${WORDPRESS_DB_NAME:-bagueship}
+      MARIADB_USER: ${WORDPRESS_DB_USER:-bagueship}
+      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-bagueship}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-bagueship_root}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u root -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wordpress:
+    image: wordpress:php8.3-apache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-bagueship}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-bagueship}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-bagueship}
+      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:-http://locallm.fr/bagueship}
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'DISALLOW_FILE_EDIT', true );
+        define( 'WP_MEMORY_LIMIT', '256M' );
+        define( 'WP_MAX_MEMORY_LIMIT', '512M' );
+        if ( ! defined( 'WP_HOME' ) ) {
+          $$site_url = getenv( 'WORDPRESS_SITE_URL' );
+          if ( ! empty( $$site_url ) ) {
+            define( 'WP_HOME', $$site_url );
+            define( 'WP_SITEURL', $$site_url );
+          } else {
+            $$scheme = ( isset( $$_SERVER['HTTPS'] ) && $$_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
+            if ( ! empty( $$_SERVER['HTTP_HOST'] ) ) {
+              define( 'WP_HOME', $$scheme . '://' . $$_SERVER['HTTP_HOST'] );
+              define( 'WP_SITEURL', $$scheme . '://' . $$_SERVER['HTTP_HOST'] );
+            }
+          }
+        }
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wordpress/wp-content:/var/www/html/wp-content
+    networks:
+      - internal
+      - edge
+
+  wpcli:
+    image: wordpress:cli-2.12-php8.3
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_started
+    environment:
+      WP_CLI_PHP_ARGS: -d memory_limit=512M
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-bagueship}
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-bagueship}
+      WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-bagueship}
+      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:-http://locallm.fr/bagueship}
+      WORDPRESS_ADMIN_USER: ${WORDPRESS_ADMIN_USER:-admin}
+      WORDPRESS_ADMIN_PASSWORD: ${WORDPRESS_ADMIN_PASSWORD:-admin12345}
+      WORDPRESS_ADMIN_EMAIL: ${WORDPRESS_ADMIN_EMAIL:-admin@bagueship.local}
+      WORDPRESS_BLOG_TITLE: ${WORDPRESS_BLOG_TITLE:-Bagueship}
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wordpress/wp-content:/var/www/html/wp-content
+      - ./scripts:/scripts
+    entrypoint: ["/bin/sh", "/scripts/bootstrap.sh"]
+    networks:
+      - internal
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_UI_BIND_ADDR: 0.0.0.0:8025
+      MP_SMTP_BIND_ADDR: 0.0.0.0:1025
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - internal
+
+volumes:
+  db_data:
+  wordpress_data:
+
+networks:
+  internal:
+    driver: bridge
+  edge:
+    external: true
+    name: edge

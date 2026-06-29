@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Collections — Bagueship</title>
+<style>
+  :root{
+    --bg:#050506; --panel:#0d0d10; --panel2:#0f0f12;
+    --ink:#f5f5f7; --ink-dim:#a1a1a6; --ink-faint:#6e6e73;
+    --hair:rgba(255,255,255,.09); --hair-soft:rgba(255,255,255,.055);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--font); -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  ::selection{ background:rgba(245,245,247,.18); }
+  a{ color:inherit; text-decoration:none; }
+
+  /* ── Nav ── */
+  .nav{
+    position:fixed; top:0; left:0; right:0; z-index:60; height:52px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 max(22px,4vw);
+    background:rgba(6,6,8,.55);
+    backdrop-filter:saturate(160%) blur(18px);
+    -webkit-backdrop-filter:saturate(160%) blur(18px);
+    border-bottom:1px solid var(--hair-soft);
+  }
+  .nav .brand{ font-size:15px; font-weight:600; letter-spacing:.34em; padding-left:.34em; }
+  .nav .right{ display:flex; align-items:center; gap:24px; font-size:12.5px; color:var(--ink-dim); font-weight:500; }
+  .nav .right a{ transition:color .25s; }
+  .nav .right a:hover{ color:var(--ink); }
+  @media (max-width:600px){ .hide-sm{ display:none !important; } }
+
+  /* ── Hero header ── */
+  .hero{
+    padding-top:52px; min-height:24vh;
+    display:flex; align-items:flex-end;
+    padding-bottom:5vh;
+    position:relative; overflow:hidden;
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(80% 70% at 50% 0%, rgba(78,84,96,.18), transparent 60%);
+    pointer-events:none;
+  }
+  .hero-inner{ max-width:1120px; margin:0 auto; padding:0 max(22px,4vw); width:100%; position:relative; z-index:2; }
+  .eyebrow{ font-size:12px; letter-spacing:.34em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .hero h1{
+    margin-top:20px; font-size:clamp(52px,9vw,120px); font-weight:600;
+    letter-spacing:-.045em; line-height:.96; text-wrap:balance;
+  }
+  .hero .lead{
+    margin-top:24px; max-width:52ch; color:var(--ink-dim);
+    font-size:clamp(15px,2vw,19px); line-height:1.55; text-wrap:pretty;
+  }
+
+  /* ── Filter bar ── */
+  .filter-wrap{
+    position:sticky; top:52px; z-index:40;
+    background:rgba(5,5,6,.75);
+    backdrop-filter:saturate(140%) blur(16px);
+    -webkit-backdrop-filter:saturate(140%) blur(16px);
+    border-bottom:1px solid var(--hair-soft);
+  }
+  .filters{
+    max-width:1120px; margin:0 auto;
+    padding:0 max(22px,4vw);
+    display:flex; gap:6px; align-items:center;
+    height:50px; overflow-x:auto; scrollbar-width:none;
+  }
+  .filters::-webkit-scrollbar{ display:none; }
+  .ftag{
+    flex:none; height:30px; padding:0 14px; border-radius:15px;
+    background:transparent; border:1px solid var(--hair);
+    color:var(--ink-dim); font-family:inherit; font-size:13px; font-weight:500;
+    cursor:pointer; white-space:nowrap;
+    transition:background .2s, color .2s, border-color .2s;
+  }
+  .ftag:hover{ border-color:rgba(255,255,255,.36); color:var(--ink); }
+  .ftag.on{ background:var(--ink); color:#0b0b0d; border-color:var(--ink); }
+
+  /* ── Collection block ── */
+  .cblock{ padding:8vh 0 4vh; }
+  .cblock + .cblock{ border-top:1px solid var(--hair-soft); padding-top:7vh; }
+  .chead{
+    max-width:1120px; margin:0 auto; padding:0 max(22px,4vw);
+    display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
+  }
+  .chead .left .ctag{ font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .chead .left h2{
+    margin-top:14px; font-size:clamp(28px,4.5vw,54px); font-weight:600;
+    letter-spacing:-.035em; line-height:1.02; max-width:18ch; text-wrap:balance;
+  }
+  .chead .left .cdesc{ display:none; }
+  .chead .arrows{ display:flex; gap:10px; flex-shrink:0; padding-bottom:4px; }
+  .arrow{
+    width:44px; height:44px; border-radius:50%; cursor:pointer;
+    background:transparent; box-shadow:inset 0 0 0 1px var(--hair);
+    color:var(--ink); display:flex; align-items:center; justify-content:center;
+    border:none; transition:box-shadow .2s, transform .15s, opacity .2s;
+  }
+  .arrow:hover{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.42); }
+  .arrow:active{ transform:scale(.93); }
+  .arrow[disabled]{ opacity:.28; cursor:default; pointer-events:none; }
+  .arrow svg{ width:17px; height:17px; }
+  @media (max-width:640px){ .chead .arrows{ display:none; } }
+
+  /* rail */
+  .rail{
+    margin-top:5vh; display:flex; gap:22px;
+    padding:8px max(22px,4vw) 28px;
+    overflow-x:auto; scroll-snap-type:x mandatory;
+    scrollbar-width:none; cursor:grab;
+  }
+  .rail:active, .rail.dragging{ cursor:grabbing; scroll-snap-type:none; }
+  .rail::-webkit-scrollbar{ display:none; }
+
+  /* card */
+  .card{
+    flex:0 0 min(68vw,520px); height:min(74vh,600px);
+    scroll-snap-align:center;
+    border-radius:22px;
+    background:linear-gradient(175deg,#0f1013 0%,#08090b 100%);
+    box-shadow:inset 0 0 0 1px var(--hair-soft);
+    position:relative; overflow:hidden;
+    display:flex; flex-direction:column;
+    transition:box-shadow .35s, transform .35s;
+  }
+  .card:hover{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); transform:translateY(-3px); }
+  .card.selected{ box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.52); }
+  .card .glow{
+    position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(58% 44% at 50% 38%, rgba(86,92,104,.28), transparent 64%);
+  }
+  .card .badge-new{
+    position:absolute; top:20px; right:20px; z-index:4;
+    height:24px; padding:0 11px; border-radius:12px;
+    background:rgba(255,255,255,.1); border:1px solid var(--hair);
+    font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--ink-dim); font-weight:600;
+    display:flex; align-items:center;
+  }
+  .card .ring-area{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    position:relative; z-index:2;
+  }
+  .ring-scene{ perspective:1400px; perspective-origin:50% 42%; }
+  .ring{
+    position:relative; transform-style:preserve-3d;
+    transform:rotateX(60deg) rotateZ(0deg); will-change:transform;
+  }
+  .band{
+    position:absolute; inset:0; border-radius:50%;
+    -webkit-mask:radial-gradient(circle at 50% 50%, transparent 0 60%, #000 62% 80%, transparent 82%);
+    mask:radial-gradient(circle at 50% 50%, transparent 0 60%, #000 62% 80%, transparent 82%);
+    backface-visibility:hidden;
+  }
+  .rim{
+    position:absolute; inset:0; border-radius:50%; transform:translateZ(2px);
+    -webkit-mask:radial-gradient(circle at 50% 50%, transparent 0 59.2%, #000 60% 61.4%, transparent 62%, transparent 79%, #000 79.6% 81%, transparent 82%);
+    mask:radial-gradient(circle at 50% 50%, transparent 0 59.2%, #000 60% 61.4%, transparent 62%, transparent 79%, #000 79.6% 81%, transparent 82%);
+    background:conic-gradient(from 92deg,rgba(255,255,255,0),rgba(255,255,255,.85),rgba(255,255,255,.05),rgba(255,255,255,.9),rgba(255,255,255,0),rgba(255,255,255,.6),rgba(255,255,255,0),rgba(255,255,255,.8),rgba(255,255,255,0));
+  }
+  .card .info{
+    position:relative; z-index:3;
+    padding:0 28px 28px;
+  }
+  .card .finish-tag{ font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .card .cname{ margin-top:10px; font-size:clamp(22px,3.2vw,34px); font-weight:600; letter-spacing:-.03em; }
+  .card .row{ margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .card .price{ font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  .card .cta-link{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:14px; font-weight:500; color:var(--ink-dim);
+    transition:color .2s, gap .2s;
+  }
+  .card:hover .cta-link{ color:var(--ink); gap:10px; }
+  .card .cta-link svg{ width:13px; height:13px; }
+
+  /* dots */
+  .dots{ display:flex; gap:8px; justify-content:center; margin-top:3vh; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:var(--hair); transition:background .25s, transform .25s; }
+  .dot.on{ background:var(--ink); transform:scale(1.3); }
+
+  /* coming soon */
+  .soon-block{
+    max-width:1120px; margin:8vh auto 0; padding:0 max(22px,4vw);
+    display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+  }
+  @media (max-width:820px){ .soon-block{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px){ .soon-block{ grid-template-columns:1fr; } }
+  .soon-card{
+    padding:28px 24px 24px; border-radius:18px;
+    background:var(--panel); box-shadow:inset 0 0 0 1px var(--hair-soft);
+    display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
+  }
+  .soon-card::before{
+    content:""; position:absolute; inset:0;
+    background:repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,.018) 18px 19px);
+    pointer-events:none;
+  }
+  .soon-card .stag{ font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .soon-card h3{ font-size:clamp(20px,2.4vw,26px); font-weight:600; letter-spacing:-.025em; }
+  .soon-card p{ display:none; }
+  .soon-card .pill{
+    margin-top:8px; align-self:flex-start;
+    height:26px; padding:0 12px; border-radius:13px;
+    border:1px solid var(--hair); font-size:11.5px; color:var(--ink-faint);
+    font-weight:500; display:flex; align-items:center; letter-spacing:.06em;
+  }
+
+
+
+  footer{
+    border-top:1px solid var(--hair-soft); padding:36px max(22px,4vw);
+    display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  }
+  .fb{ letter-spacing:.34em; color:var(--ink); font-weight:600; font-size:14px; }
+  .flinks{ display:flex; gap:22px; color:var(--ink-faint); font-size:13px; }
+  .flinks a:hover{ color:var(--ink-dim); }
+  .fcopy{ color:var(--ink-faint); font-size:12px; }
+
+  /* Reveal */
+  .reveal{ opacity:0; transform:translateY(28px); transition:opacity 1s cubic-bezier(.16,1,.3,1), transform 1s cubic-bezier(.16,1,.3,1); }
+  .reveal.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
+</style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav class="nav">
+  <a class="brand" href="Bagueship — Accueil.html">BAGUESHIP</a>
+  <div class="right">
+    <a href="Bagueship — Accueil.html" class="hide-sm">Accueil</a>
+    <a href="Bagueship — Collection.html" style="color:var(--ink)">Collection</a>
+    <a href="Bagueship — Panier.html">Panier</a>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow reveal">Collection 2026</div>
+    <h1 class="reveal">Chaque pièce,<br/>une signature.</h1>
+  </div>
+</header>
+
+
+
+<!-- ════ NOCTIS collection ════ -->
+<section class="cblock" id="noctis" data-col="noctis">
+  <div class="chead reveal">
+    <div class="left">
+      <div class="ctag">Collection I</div>
+      <h2>Noctis</h2>
+      <p class="cdesc">Forgée d'un seul bloc d'acier chirurgical 316L. Architecture déstructurée, trois états de surface — un seul caractère.</p>
+    </div>
+    <div class="arrows">
+      <button class="arrow" id="nPrev" disabled aria-label="Précédent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"/></svg>
+      </button>
+      <button class="arrow" id="nNext" aria-label="Suivant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 L16 12 L9 19"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="rail" id="nRail"></div>
+  <div class="dots" id="nDots"></div>
+</section>
+
+<!-- ════ COMING SOON ════ -->
+<section class="cblock" id="coming" data-col="coming">
+  <div class="chead reveal">
+    <div class="left">
+      <div class="ctag">En préparation</div>
+      <h2>Prochaines collections</h2>
+    </div>
+  </div>
+  <div class="soon-block reveal">
+    <div class="soon-card">
+      <div class="stag">Collection II</div>
+      <h3>Umbra</h3>
+      <p>Profil d'anneau ouvert, oxydation noire contrôlée, texture martelée à la main.</p>
+      <span class="pill">2026 · Q3</span>
+    </div>
+    <div class="soon-card">
+      <div class="stag">Collection III</div>
+      <h3>Ferrox</h3>
+      <p>Alliance double-bande, incrustations d'acier brossé et de tungstène brut.</p>
+      <span class="pill">2026 · Q4</span>
+    </div>
+    <div class="soon-card">
+      <div class="stag">Édition spéciale</div>
+      <h3>Noctis&nbsp;×&nbsp;01</h3>
+      <p>Noctis gravée numérotée, tirage limité à 50 exemplaires. Pré-inscription ouverte.</p>
+      <span class="pill">Bientôt</span>
+    </div>
+  </div>
+</section>
+
+
+
+<footer>
+  <div class="fb">BAGUESHIP</div>
+  <div class="flinks">
+    <a href="Bagueship — Accueil.html">Accueil</a>
+    <a href="Bagueship — Collection.html">Collection</a>
+    <a href="Noctis — Page produit.html">Noctis</a>
+    <a href="Bagueship — Panier.html">Panier</a>
+  </div>
+  <div class="fcopy">Conçu en France · © 2026</div>
+</footer>
+
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FACET = 'repeating-conic-gradient(from 0deg,rgba(255,255,255,0) 0 4deg,rgba(255,255,255,.055) 4deg 7.5deg,rgba(0,0,0,.07) 7.5deg 11deg)';
+  const METALS = {
+    steel:'conic-gradient(from 92deg,#2c3036,#c6cbd2,#51565d,#f1f4f8,#383c42,#9aa0a8,#282b30,#d6dbe2,#45494f,#b3b9c1,#2c3036)',
+    noir: 'conic-gradient(from 92deg,#0c0d0f,#4a4e55,#16181b,#6b7077,#0e1012,#3a3e44,#0c0d0f,#5a5f66,#15171a,#454a50,#0c0d0f)',
+    poli: 'conic-gradient(from 92deg,#1b1e23,#f4f7fb,#5a6068,#ffffff,#23272d,#cdd3db,#181b20,#eef2f7,#33373d,#aeb4bc,#1b1e23)'
+  };
+
+  /* Ring builder */
+  function buildRing(el, metalKey, size){
+    const N=18, STEP=size*0.022;
+    const metal = METALS[metalKey];
+    const rim=el.querySelector('.rim');
+    const frag=document.createDocumentFragment();
+    for(let i=N-1;i>=0;i--){
+      const b=document.createElement('div'); b.className='band';
+      const t=i/(N-1);
+      let br=0.42+0.58*(1-t);
+      if(i===0) br=1.0; if(i===N-1) br=0.55;
+      b.style.background=FACET+', '+metal;
+      b.style.transform='translateZ('+(-i*STEP)+'px)';
+      b.style.filter='brightness('+br.toFixed(3)+')';
+      frag.appendChild(b);
+    }
+    el.insertBefore(frag,rim);
+  }
+
+  /* Global animation loop */
+  const allRings=[];
+  function regRing(el, speed, startSpin){
+    allRings.push({el, speed, spin:startSpin||Math.random()*360, boost:0});
+  }
+  if(!reduce){
+    (function frame(){
+      allRings.forEach(r=>{
+        r.spin += r.speed*(1+r.boost); r.boost*=.93;
+        r.el.style.transform='rotateX(60deg) rotateZ('+r.spin.toFixed(2)+'deg)';
+      });
+      requestAnimationFrame(frame);
+    })();
+  }
+
+  /* ── Noctis collection ── */
+  const NOCTIS=[
+    {name:'Noctis',       finish:'Acier brossé',       price:'340 €', metal:'steel', tag:'', filter:['noctis','acier']},
+    {name:'Noctis Noir',  finish:'Acier noirci',        price:'360 €', metal:'noir',  tag:'Bestseller', filter:['noctis','noir']},
+    {name:'Noctis Poli',  finish:'Miroir poli',         price:'390 €', metal:'poli',  tag:'Nouveau',    filter:['noctis','poli']}
+  ];
+  const nRail=document.getElementById('nRail');
+  const nDots=document.getElementById('nDots');
+  const CARD_SIZE='min(68vw,520px)';
+
+  NOCTIS.forEach((p,i)=>{
+    const a=document.createElement('a');
+    a.className='card'; a.href='Noctis — Page produit.html';
+    a.dataset.filters=p.filter.join(',');
+    const sz = 240;
+    a.innerHTML=
+      '<div class="glow"></div>'+
+      (p.tag?'<div class="badge-new">'+p.tag+'</div>':'')+
+      '<div class="ring-area"><div class="ring-scene"><div class="ring" style="width:'+sz+'px;height:'+sz+'px;"><div class="rim"></div></div></div></div>'+
+      '<div class="info">'+
+        '<div class="finish-tag">'+p.finish+'</div>'+
+        '<div class="cname">'+p.name+'</div>'+
+        '<div class="row">'+
+          '<span class="price">'+p.price+'</span>'+
+          '<span class="cta-link">En savoir plus <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 L16 12 L9 19"/></svg></span>'+
+        '</div>'+
+      '</div>';
+    nRail.appendChild(a);
+    const rEl=a.querySelector('.ring');
+    buildRing(rEl, p.metal, sz);
+    regRing(rEl, reduce?0:0.11, i*120);
+    const obj=allRings[allRings.length-1];
+    a.addEventListener('pointerenter',()=>{ obj.boost=2.8; });
+    if(reduce) rEl.style.transform='rotateX(60deg) rotateZ(18deg)';
+    const d=document.createElement('span'); d.className='dot'+(i===0?' on':'');
+    nDots.appendChild(d);
+  });
+
+  /* Rail nav helper */
+  function setupRail(railEl, dotsEl, prevBtn, nextBtn){
+    const cards=[...railEl.querySelectorAll('.card')];
+    const dots=[...dotsEl.children];
+    function cardStep(){
+      const c=cards[0]; const gap=22;
+      return c.offsetWidth + gap;
+    }
+    function active(){ return Math.round(railEl.scrollLeft/cardStep()); }
+    function sync(){
+      const a=active();
+      dots.forEach((d,i)=>d.classList.toggle('on',i===a));
+      if(prevBtn) prevBtn.disabled = railEl.scrollLeft < 8;
+      if(nextBtn) nextBtn.disabled = railEl.scrollLeft > railEl.scrollWidth-railEl.clientWidth-8;
+    }
+    if(prevBtn) prevBtn.addEventListener('click',()=>railEl.scrollBy({left:-cardStep(),behavior:'smooth'}));
+    if(nextBtn) nextBtn.addEventListener('click',()=>railEl.scrollBy({left:cardStep(),behavior:'smooth'}));
+    railEl.addEventListener('scroll',sync,{passive:true});
+    window.addEventListener('resize',sync);
+    /* drag */
+    let down=false,moved=false,sx=0,sl=0;
+    railEl.addEventListener('pointerdown',e=>{down=true;moved=false;sx=e.clientX;sl=railEl.scrollLeft;railEl.classList.add('dragging');});
+    railEl.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-sx;if(Math.abs(dx)>5)moved=true;railEl.scrollLeft=sl-dx;});
+    function end(){ if(!down)return;down=false;railEl.classList.remove('dragging'); }
+    railEl.addEventListener('pointerup',end);
+    railEl.addEventListener('pointerleave',end);
+    railEl.addEventListener('pointercancel',end);
+    cards.forEach(c=>c.addEventListener('click',e=>{if(moved)e.preventDefault();}));
+    setTimeout(sync,60);
+  }
+
+  setupRail(nRail, nDots, document.getElementById('nPrev'), document.getElementById('nNext'));
+
+  /* ── Filter bar ── */
+  const filterBtns=[...document.querySelectorAll('.ftag')];
+  const sections=[...document.querySelectorAll('.cblock')];
+  filterBtns.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      filterBtns.forEach(b=>b.classList.remove('on'));
+      btn.classList.add('on');
+      const f=btn.dataset.filter;
+      sections.forEach(sec=>{
+        const col=sec.dataset.col;
+        if(f==='all'){ sec.style.display=''; return; }
+        if(f==='coming'){ sec.style.display=col==='coming'?'':'none'; return; }
+        if(col==='coming'){ sec.style.display='none'; return; }
+        /* card-level filter */
+        sec.style.display='';
+        let any=false;
+        [...sec.querySelectorAll('.card')].forEach(c=>{
+          const cf=c.dataset.filters||'';
+          const show=cf.includes(f)||f===col;
+          c.style.display=show?'':'none';
+          if(show) any=true;
+        });
+        sec.style.display=any?'':'none';
+      });
+    });
+  });
+
+  /* ── Reveal ── */
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  },{threshold:0.13, rootMargin:'0px 0px -5% 0px'});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{
+    el.style.transitionDelay=(Math.min(i%5,4)*0.07)+'s';
+    io.observe(el);
+  });
+})();
+</script>
+</body>
+</html>

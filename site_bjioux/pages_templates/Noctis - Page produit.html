@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Noctis — Bagueship</title>
+<style>
+  :root{
+    --bg:#050506;
+    --bg-soft:#0a0a0c;
+    --ink:#f5f5f7;
+    --ink-dim:#a1a1a6;
+    --ink-faint:#6e6e73;
+    --hair:rgba(255,255,255,.09);
+    --hair-soft:rgba(255,255,255,.06);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:auto; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  ::selection{ background:rgba(245,245,247,.18); }
+
+  /* ---------- Top bar ---------- */
+  .nav{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    height:52px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 max(22px, 4vw);
+    background:rgba(6,6,8,.55);
+    backdrop-filter:saturate(160%) blur(18px);
+    -webkit-backdrop-filter:saturate(160%) blur(18px);
+    border-bottom:1px solid var(--hair-soft);
+  }
+  .nav .brand{
+    font-size:15px; font-weight:600; letter-spacing:.34em;
+    padding-left:.34em;
+  }
+  .nav .right{
+    display:flex; align-items:center; gap:26px;
+    font-size:12.5px; color:var(--ink-dim); font-weight:500;
+  }
+  .nav .right a{ color:inherit; text-decoration:none; transition:color .25s; }
+  .nav .right a:hover{ color:var(--ink); }
+  .nav .price-pill{
+    color:var(--ink); font-weight:600; letter-spacing:.01em;
+  }
+  @media (max-width:600px){ .nav .right .hide-sm{ display:none; } }
+
+  /* ---------- Scroll stage ---------- */
+  .scrollzone{ position:relative; height:440vh; }
+  .stage{
+    position:sticky; top:0; height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  /* studio key light + vignette */
+  .stage::before{
+    content:""; position:absolute; inset:0;
+    background:
+      radial-gradient(60% 48% at 50% 38%, rgba(78,84,96,.30), rgba(40,44,54,.06) 46%, transparent 70%),
+      radial-gradient(120% 90% at 50% 50%, transparent 52%, rgba(0,0,0,.65) 100%);
+    pointer-events:none;
+  }
+  .platform{
+    position:absolute; left:50%; top:62%;
+    width:54vmin; height:13vmin; transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(150,160,176,.16), transparent 68%);
+    filter:blur(22px); pointer-events:none;
+  }
+
+  .stage3d{ perspective:1700px; perspective-origin:50% 40%; position:relative; z-index:2; }
+  .ring-fade{ transition:opacity .2s linear; will-change:opacity; }
+  .ring-wrap{ transform-style:preserve-3d; }
+  .ring{
+    position:relative;
+    width:min(56vmin, 380px);
+    height:min(56vmin, 380px);
+    transform-style:preserve-3d;
+    transform:rotateX(var(--tilt,63deg)) rotateZ(var(--spin,0deg));
+    will-change:transform;
+  }
+  .band{
+    position:absolute; inset:0; border-radius:50%;
+    background:
+      repeating-conic-gradient(from 0deg,
+        rgba(255,255,255,0) 0 4deg,
+        rgba(255,255,255,.055) 4deg 7.5deg,
+        rgba(0,0,0,.07) 7.5deg 11deg),
+      conic-gradient(from 92deg,
+        #2c3036, #c6cbd2, #51565d, #f1f4f8, #383c42,
+        #9aa0a8, #282b30, #d6dbe2, #45494f, #b3b9c1, #2c3036);
+    -webkit-mask:radial-gradient(circle at 50% 50%,
+        transparent 0 60%, #000 62% 80%, transparent 82%);
+    mask:radial-gradient(circle at 50% 50%,
+        transparent 0 60%, #000 62% 80%, transparent 82%);
+    backface-visibility:hidden;
+  }
+  /* faint inner + outer edge highlights on the top face */
+  .rim{
+    position:absolute; inset:0; border-radius:50%;
+    -webkit-mask:radial-gradient(circle at 50% 50%,
+        transparent 0 59.2%, #000 60% 61.4%, transparent 62%,
+        transparent 79%, #000 79.6% 81%, transparent 82%);
+    mask:radial-gradient(circle at 50% 50%,
+        transparent 0 59.2%, #000 60% 61.4%, transparent 62%,
+        transparent 79%, #000 79.6% 81%, transparent 82%);
+    background:conic-gradient(from 92deg,
+        rgba(255,255,255,.0), rgba(255,255,255,.85), rgba(255,255,255,.05),
+        rgba(255,255,255,.9), rgba(255,255,255,.0), rgba(255,255,255,.6),
+        rgba(255,255,255,.0), rgba(255,255,255,.8), rgba(255,255,255,.0));
+    transform:translateZ(2px);
+  }
+
+  /* ---------- Kinetic overlay text ---------- */
+  .cues{
+    position:absolute; inset:0; z-index:6;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:none; text-align:center;
+  }
+  .cue{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width:min(92vw, 760px);
+    opacity:0; will-change:opacity, transform;
+  }
+  .cue.title h1{
+    font-size:clamp(64px, 15vw, 168px);
+    font-weight:600; letter-spacing:-.045em; line-height:.92;
+  }
+  .cue.title p{
+    margin-top:18px; font-size:clamp(15px,2.4vw,21px);
+    color:var(--ink-dim); font-weight:400; letter-spacing:.005em;
+  }
+  .cue.phrase p{
+    font-size:clamp(26px, 5vw, 54px);
+    font-weight:600; letter-spacing:-.025em; line-height:1.08;
+    color:var(--ink);
+  }
+  .scrollhint{
+    position:fixed; left:0; right:0; bottom:30px; z-index:7;
+    display:flex; flex-direction:column; align-items:center; gap:11px;
+    color:var(--ink-faint); font-size:11px; letter-spacing:.32em;
+    font-weight:500; text-transform:uppercase;
+    transition:opacity .4s; pointer-events:none;
+  }
+  .scrollhint .line{
+    width:1px; height:40px;
+    background:linear-gradient(var(--ink-faint), transparent);
+    animation:drift 2.4s ease-in-out infinite;
+  }
+  @keyframes drift{ 0%,100%{ transform:scaleY(.5); opacity:.4 } 50%{ transform:scaleY(1); opacity:1 } }
+
+  /* ---------- Reveal sections ---------- */
+  .reveal{ opacity:0; transform:translateY(34px); transition:opacity 1s cubic-bezier(.16,1,.3,1), transform 1s cubic-bezier(.16,1,.3,1); }
+  .reveal.in{ opacity:1; transform:none; }
+
+  .section{ position:relative; padding:0 max(22px, 4vw); }
+  .wrap{ max-width:980px; margin:0 auto; }
+
+  .eyebrow{
+    font-size:12px; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:600;
+  }
+
+  /* Specs */
+  .specs{ padding-top:14vh; padding-bottom:12vh; }
+  .specs h2{
+    font-size:clamp(34px,6vw,68px); font-weight:600;
+    letter-spacing:-.035em; line-height:1.02; margin-top:20px;
+    max-width:14ch;
+  }
+  .specs .lead{
+    margin-top:26px; max-width:46ch; color:var(--ink-dim);
+    font-size:clamp(16px,2.2vw,20px); line-height:1.55; font-weight:400;
+    text-wrap:pretty;
+  }
+  .spec-list{ margin-top:9vh; border-top:1px solid var(--hair); }
+  .spec-row{
+    display:grid; grid-template-columns:minmax(120px,1fr) 2fr;
+    gap:24px; align-items:baseline;
+    padding:30px 4px; border-bottom:1px solid var(--hair);
+  }
+  .spec-row .k{
+    font-size:13px; letter-spacing:.04em; color:var(--ink-faint);
+    font-weight:500; text-transform:uppercase;
+  }
+  .spec-row .v{
+    font-size:clamp(20px,3vw,30px); font-weight:500;
+    letter-spacing:-.02em; color:var(--ink);
+  }
+  .spec-row .v small{ display:block; margin-top:8px; font-size:14px; color:var(--ink-dim); font-weight:400; letter-spacing:0; }
+
+  /* Purchase */
+  .buy{ padding-top:13vh; padding-bottom:20vh; text-align:center; }
+  .buy .name{ font-size:clamp(40px,8vw,86px); font-weight:600; letter-spacing:-.04em; line-height:1; }
+  .buy .sub{ margin-top:16px; color:var(--ink-dim); font-size:clamp(15px,2.2vw,19px); }
+  .buy .amount{ margin-top:40px; font-size:clamp(30px,5vw,46px); font-weight:600; letter-spacing:-.02em; }
+  .buy .from{ display:block; font-size:13px; color:var(--ink-faint); letter-spacing:.04em; margin-bottom:6px; font-weight:500; text-transform:uppercase; }
+
+  .sizes{ margin:48px auto 0; max-width:560px; }
+  .sizes .head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .sizes .head .lbl{ font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
+  .sizes .head .circ{ font-size:14px; color:var(--ink-dim); font-variant-numeric:tabular-nums; }
+  .chips{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .chip{
+    appearance:none; border:1px solid var(--hair); background:transparent;
+    color:var(--ink); font-family:inherit; font-size:16px; font-weight:500;
+    width:54px; height:54px; border-radius:50%;
+    cursor:pointer; transition:border-color .2s, background .2s, transform .2s, color .2s;
+    font-variant-numeric:tabular-nums;
+  }
+  .chip:hover{ border-color:rgba(255,255,255,.45); }
+  .chip[aria-pressed="true"]{
+    background:var(--ink); color:#0b0b0d; border-color:var(--ink);
+    transform:scale(1.04);
+  }
+
+  .cta{
+    margin-top:46px; display:flex; flex-direction:column; align-items:center; gap:16px;
+  }
+  .btn-buy{
+    appearance:none; border:none; cursor:pointer; font-family:inherit;
+    background:var(--ink); color:#0b0b0d;
+    font-size:18px; font-weight:600; letter-spacing:-.01em;
+    padding:0 46px; height:58px; border-radius:30px; min-width:280px;
+    transition:transform .18s cubic-bezier(.16,1,.3,1), background .25s, color .25s;
+  }
+  .btn-buy:hover{ transform:translateY(-1px); }
+  .btn-buy:active{ transform:translateY(0) scale(.99); }
+  .btn-buy.added{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--hair); }
+  .reassure{ font-size:13px; color:var(--ink-faint); letter-spacing:.01em; }
+
+  .footer{
+    border-top:1px solid var(--hair-soft);
+    padding:34px max(22px,4vw); text-align:center;
+    color:var(--ink-faint); font-size:12px; letter-spacing:.02em;
+  }
+  .footer .fb{ letter-spacing:.34em; color:var(--ink-dim); font-weight:600; }
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ transition:none; opacity:1; transform:none; }
+    .scrollhint .line{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="brand">BAGUESHIP</div>
+    <div class="right">
+      <a href="Bagueship — Accueil.html" class="hide-sm">Accueil</a>
+      <a href="Bagueship — Collection.html" class="hide-sm">Collection</a>
+      <a href="#specs" class="hide-sm">Specs</a>
+      <span class="price-pill">340&nbsp;€</span>
+    </div>
+  </nav>
+
+  <!-- ============ Pinned rotating ring ============ -->
+  <section class="scrollzone" id="top">
+    <div class="stage">
+      <div class="platform"></div>
+
+      <div class="stage3d ring-fade" id="ringFade">
+        <div class="ring-wrap" id="ringWrap">
+          <div class="ring" id="ring">
+            <!-- band layers injected by JS -->
+            <div class="rim"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cues" id="cues">
+        <div class="cue title" data-cue="0">
+          <h1>Noctis</h1>
+          <p>Acier inoxydable. Déstructuré. Éternel.</p>
+        </div>
+        <div class="cue phrase" data-cue="1"><p>Forgée dans l'acier inoxydable&nbsp;316L.</p></div>
+        <div class="cue phrase" data-cue="2"><p>Une architecture déstructurée,<br/>taillée à la lumière.</p></div>
+        <div class="cue phrase" data-cue="3"><p>Pensée pour ne jamais vieillir.</p></div>
+      </div>
+    </div>
+
+    <div class="scrollhint" id="hint">
+      <span>Faites défiler</span>
+      <span class="line"></span>
+    </div>
+  </section>
+
+  <!-- ============ Specs ============ -->
+  <section class="section specs" id="specs">
+    <div class="wrap">
+      <div class="eyebrow reveal">Spécifications</div>
+      <h2 class="reveal">Chaque détail, sculpté.</h2>
+      <p class="lead reveal">Noctis est usinée d'un seul bloc d'acier inoxydable chirurgical, puis brossée et facettée à la main. Une pièce dense, froide, conçue pour porter la lumière.</p>
+
+      <div class="spec-list">
+        <div class="spec-row reveal">
+          <div class="k">Matériau</div>
+          <div class="v">Acier inoxydable 316L<small>Acier chirurgical, hypoallergénique et résistant à la corrosion.</small></div>
+        </div>
+        <div class="spec-row reveal">
+          <div class="k">Finition</div>
+          <div class="v">Brossé &amp; facetté<small>Surfaces mates et arêtes polies, travaillées à la main.</small></div>
+        </div>
+        <div class="spec-row reveal">
+          <div class="k">Profil</div>
+          <div class="v">Bande 8&nbsp;mm · 2,4&nbsp;mm d'épaisseur</div>
+        </div>
+        <div class="spec-row reveal">
+          <div class="k">Poids</div>
+          <div class="v">14&nbsp;g</div>
+        </div>
+        <div class="spec-row reveal">
+          <div class="k">Conception</div>
+          <div class="v">Déstructurée<small>Volume asymétrique, fait main en édition limitée.</small></div>
+        </div>
+        <div class="spec-row reveal">
+          <div class="k">Tailles</div>
+          <div class="v">48 → 68 (EU)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Purchase ============ -->
+  <section class="section buy" id="acheter">
+    <div class="wrap">
+      <div class="name reveal">Noctis</div>
+      <div class="sub reveal">Acier inoxydable 316L · Finition brossée &amp; facettée</div>
+
+      <div class="amount reveal"><span class="from">À partir de</span>340&nbsp;€</div>
+
+      <div class="sizes reveal">
+        <div class="head">
+          <span class="lbl">Taille de doigt</span>
+          <span class="circ" id="circ">Circonférence 56&nbsp;mm</span>
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="Taille de bague"></div>
+      </div>
+
+      <div class="cta reveal">
+        <button class="btn-buy" id="buy">Ajouter au panier</button>
+        <span class="reassure">Livraison et retours offerts · Garantie à vie</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="fb">BAGUESHIP</div>
+    <div style="margin-top:10px">Conçu en France. © 2026 Tous droits réservés.</div>
+  </footer>
+
+<script>
+(function(){
+  /* ---------- Build the metallic ring (extruded band) ---------- */
+  const ring = document.getElementById('ring');
+  const rim = ring.querySelector('.rim');
+  const N = 18;            // layers of thickness
+  const STEP = 1.35;       // px between layers
+  const frag = document.createDocumentFragment();
+  for(let i=N-1; i>=0; i--){           // back to front so the face sits on top
+    const b = document.createElement('div');
+    b.className = 'band';
+    const t = i/(N-1);                 // 0 = front face, 1 = back
+    // brightness: bright face, shaded extruded wall, slight rim light at the very back
+    let bright = 0.42 + 0.58*(1-t);
+    if(i===0) bright = 1.0;
+    if(i===N-1) bright = 0.55;
+    b.style.transform = 'translateZ(' + (-i*STEP) + 'px)';
+    b.style.filter = 'brightness(' + bright.toFixed(3) + ')';
+    frag.appendChild(b);
+  }
+  ring.insertBefore(frag, rim);
+
+  /* ---------- Scroll-driven rotation + kinetic text ---------- */
+  const zone = document.getElementById('top');
+  const wrap = document.getElementById('ringWrap');
+  const ringFade = document.getElementById('ringFade');
+  const hint = document.getElementById('hint');
+  const cueEls = [...document.querySelectorAll('.cue')];
+
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  // ramp: 0 before a, 0->1 a..b, 1 b..c, 1->0 c..d
+  function band(p,a,b,c,d){
+    if(p<a||p>d) return 0;
+    if(p<b) return (p-a)/(b-a);
+    if(p>c) return 1-(p-c)/(d-c);
+    return 1;
+  }
+
+  let ticking=false;
+  function update(){
+    ticking=false;
+    const total = zone.offsetHeight - window.innerHeight;
+    const p = clamp(-zone.getBoundingClientRect().top / total, 0, 1);
+
+    const spin = p*920;
+    const tilt = 63 - p*9;
+    wrap.style.setProperty('--spin', spin.toFixed(2)+'deg');
+    wrap.style.setProperty('--tilt', tilt.toFixed(2)+'deg');
+
+    ringFade.style.opacity = p>0.9 ? (1-(p-0.9)/0.1).toFixed(3) : 1;
+    hint.style.opacity = p<0.03 ? 1 : 0;
+
+    // text stages
+    const o0 = band(p, -1, -1, 0.15, 0.21);
+    const o1 = band(p, 0.30, 0.36, 0.45, 0.51);
+    const o2 = band(p, 0.55, 0.61, 0.70, 0.76);
+    const o3 = band(p, 0.81, 0.87, 1.1, 1.2);
+    const os=[o0,o1,o2,o3];
+    cueEls.forEach((el,i)=>{
+      const o=os[i];
+      el.style.opacity=o;
+      const y=(1-o)*16;
+      el.style.transform='translate(-50%,calc(-50% + '+y.toFixed(1)+'px))';
+    });
+  }
+  function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(update); } }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+
+  /* ---------- Reveal on scroll ---------- */
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.18, rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{
+    el.style.transitionDelay = (Math.min(i,6)*0.06)+'s';
+    io.observe(el);
+  });
+
+  /* ---------- Size selector ---------- */
+  const chips = document.getElementById('chips');
+  const circ = document.getElementById('circ');
+  const SIZES=[48,50,52,54,56,58,60,62,64,66,68];
+  let selected=56;
+  SIZES.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.type='button'; b.textContent=s;
+    b.setAttribute('aria-pressed', s===selected?'true':'false');
+    b.addEventListener('click',()=>{
+      selected=s;
+      [...chips.children].forEach(c=>c.setAttribute('aria-pressed', c===b?'true':'false'));
+      circ.innerHTML='Circonférence '+s+'&nbsp;mm';
+    });
+    chips.appendChild(b);
+  });
+
+  /* ---------- Buy ---------- */
+  const buy=document.getElementById('buy');
+  let added=false;
+  buy.addEventListener('click',()=>{
+    if(added) return;
+    added=true;
+    buy.classList.add('added');
+    buy.textContent='Ajouté au panier ✓';
+    setTimeout(()=>{ buy.classList.remove('added'); buy.textContent='Ajouter au panier'; added=false; }, 2200);
+  });
+})();
+</script>
+</body>
+</html>
