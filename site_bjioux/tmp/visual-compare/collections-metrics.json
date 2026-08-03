@@ -1,0 +1,41 @@
+{
+  "viewport": {
+    "width": 1780,
+    "height": 1180
+  },
+  "document": {
+    "scrollWidth": 1780,
+    "scrollHeight": 1180
+  },
+  "cardCount": 4,
+  "fonts": {
+    "displayReady": true,
+    "titleFamily": "\"Eclipse Display\", \"Arial Narrow\", sans-serif",
+    "titleSize": "80.1px",
+    "cardFamily": "\"Eclipse Display\", \"Arial Narrow\", sans-serif"
+  },
+  "intro": {
+    "x": 68.515625,
+    "y": 197,
+    "width": 1642.96875,
+    "height": 105.078125
+  },
+  "grid": {
+    "x": 68.515625,
+    "y": 350.078125,
+    "width": 1642.96875,
+    "height": 666.6875
+  },
+  "card": {
+    "x": 68.515625,
+    "y": 350.078125,
+    "width": 385.234375,
+    "height": 666.6875
+  },
+  "bottomLink": {
+    "x": 68.515625,
+    "y": 1084.765625,
+    "width": 270.125,
+    "height": 16
+  }
+}

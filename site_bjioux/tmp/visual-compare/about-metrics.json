@@ -1,0 +1,47 @@
+{
+  "heroMetrics": {
+    "viewport": {
+      "width": 1512,
+      "height": 870
+    },
+    "scrollWidth": 1512,
+    "displayReady": true,
+    "titleFamily": "\"Eclipse Display\", \"Arial Narrow\", sans-serif",
+    "activeNav": "À propos",
+    "navHeight": 92,
+    "topbarLinks": [
+      "Collection",
+      "Bijoux",
+      "À propos"
+    ]
+  },
+  "storyMetrics": {
+    "stickyTop": 0,
+    "opacities": [
+      0,
+      0.99977,
+      0
+    ],
+    "modelOrbit": "170.01585144927537deg 63.99934407796102deg 111.99934407796101%",
+    "nav": [
+      {
+        "text": "ECLIPSE",
+        "color": "rgb(247, 247, 247)",
+        "opacity": "1",
+        "visibility": "visible"
+      },
+      {
+        "text": "Collection\n    Bijoux\n    À propos",
+        "color": "rgb(247, 247, 247)",
+        "opacity": "1",
+        "visibility": "visible"
+      },
+      {
+        "text": "Panier (0)",
+        "color": "rgb(247, 247, 247)",
+        "opacity": "1",
+        "visibility": "visible"
+      }
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "collection": {
+    "nav": {
+      "x": 58.203125,
+      "y": 0,
+      "width": 1395.59375,
+      "height": 92,
+      "fontSize": "16px",
+      "letterSpacing": "normal",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "500",
+      "lineHeight": "normal"
+    },
+    "brand": {
+      "x": 58.203125,
+      "y": 36,
+      "width": 133.8125,
+      "height": 20,
+      "fontSize": "20px",
+      "letterSpacing": "8.4px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "20px"
+    },
+    "links": {
+      "x": 446.78125,
+      "y": 24,
+      "width": 353.890625,
+      "height": 44,
+      "fontSize": "12px",
+      "letterSpacing": "0.9px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "normal"
+    },
+    "cart": {
+      "x": 1383.796875,
+      "y": 24,
+      "width": 70,
+      "height": 44,
+      "fontSize": "12px",
+      "letterSpacing": "0.9px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "normal"
+    }
+  },
+  "jewels": {
+    "nav": {
+      "x": 58.203125,
+      "y": 0,
+      "width": 1395.59375,
+      "height": 92,
+      "fontSize": "16px",
+      "letterSpacing": "normal",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "500",
+      "lineHeight": "normal"
+    },
+    "brand": {
+      "x": 58.203125,
+      "y": 36,
+      "width": 133.8125,
+      "height": 20,
+      "fontSize": "20px",
+      "letterSpacing": "8.4px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "20px"
+    },
+    "links": {
+      "x": 446.78125,
+      "y": 24,
+      "width": 353.890625,
+      "height": 44,
+      "fontSize": "12px",
+      "letterSpacing": "0.9px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "normal"
+    },
+    "cart": {
+      "x": 1383.796875,
+      "y": 24,
+      "width": 70,
+      "height": 44,
+      "fontSize": "12px",
+      "letterSpacing": "0.9px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "normal"
+    }
+  },
+  "about": {
+    "nav": {
+      "x": 0,
+      "y": 0,
+      "width": 1512,
+      "height": 92,
+      "fontSize": "16px",
+      "letterSpacing": "normal",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "500",
+      "lineHeight": "normal"
+    },
+    "brand": {
+      "x": 58.203125,
+      "y": 36,
+      "width": 133.8125,
+      "height": 20,
+      "fontSize": "20px",
+      "letterSpacing": "8.4px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "20px"
+    },
+    "links": {
+      "x": 446.78125,
+      "y": 24,
+      "width": 353.890625,
+      "height": 44,
+      "fontSize": "12px",
+      "letterSpacing": "0.9px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "normal"
+    },
+    "cart": {
+      "x": 1383.796875,
+      "y": 24,
+      "width": 70,
+      "height": 44,
+      "fontSize": "12px",
+      "letterSpacing": "0.9px",
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontWeight": "700",
+      "lineHeight": "normal"
+    }
+  }
+}

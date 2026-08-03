@@ -40,10 +40,11 @@ wp option update home "$WORDPRESS_SITE_URL" --allow-root >/dev/null
 wp option update siteurl "$WORDPRESS_SITE_URL" --allow-root >/dev/null
 wp rewrite flush --hard --allow-root >/dev/null
 
-wp plugin is-installed woocommerce --allow-root >/dev/null 2>&1 || wp plugin install woocommerce --activate --allow-root
+wp plugin is-installed woocommerce --allow-root >/dev/null 2>&1 || wp plugin install woocommerce --allow-root
+wp plugin activate woocommerce --allow-root
 wp theme is-installed bagueship --allow-root >/dev/null 2>&1 || true
 wp theme activate bagueship --allow-root
-wp plugin is-installed bagueship-core --allow-root >/dev/null 2>&1 || wp plugin activate bagueship-core --allow-root
+wp plugin activate bagueship-core --allow-root
 
 wp eval-file /scripts/seed.php --allow-root
 

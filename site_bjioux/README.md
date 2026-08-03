@@ -1,6 +1,6 @@
-# Bagueship / WordPress
+# Eclipse / WordPress
 
-Stack e-commerce WordPress + WooCommerce pour le projet Bagueship.
+Stack e-commerce WordPress + WooCommerce pour le projet Eclipse.
 
 ## Contenu
 
@@ -12,11 +12,11 @@ Stack e-commerce WordPress + WooCommerce pour le projet Bagueship.
 
 ## Lancement
 
-1. Copier `.env.example` en `.env` et renseigner les secrets.
-2. S’assurer que le réseau Docker externe `edge` existe déjà.
-3. Lancer la stack avec `docker compose up -d`.
+1. Copier `.env.example` en `.env` et renseigner les secrets si besoin.
+2. Lancer la stack avec `docker compose up -d`.
+3. Ouvrir le site sur `http://localhost:8080`.
 
-Le bootstrap télécharge WordPress depuis l’image officielle `wordpress`, installe WooCommerce et active le thème Bagueship.
+Le bootstrap télécharge WordPress depuis l’image officielle `wordpress`, installe WooCommerce et active le thème Eclipse.
 
 ## Pages créées
 
@@ -40,7 +40,7 @@ Le bootstrap télécharge WordPress depuis l’image officielle `wordpress`, ins
 
 ## Réglages légaux
 
-Les données légales du vendeur se renseignent dans `Réglages > Bagueship`.
+Les données légales du vendeur se renseignent dans `Réglages > Eclipse`.
 Avant mise en production, il faut compléter :
 
 - Raison sociale
@@ -52,4 +52,3 @@ Avant mise en production, il faut compléter :
 - Hébergeur
 - Médiateur
 - Contact données personnelles
-

@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'BAGUESHIP_THEME_VERSION', '1.0.9' );
+define( 'ECLIPSE_THEME_VERSION', '1.0.33' );
 
 function bagueship_theme_setup(): void {
     load_theme_textdomain( 'bagueship', get_template_directory() . '/languages' );
@@ -15,6 +15,15 @@ function bagueship_theme_setup(): void {
     add_theme_support( 'wc-product-gallery-slider' );
     add_theme_support( 'wc-product-gallery-lightbox' );
     add_theme_support( 'wc-product-gallery-zoom' );
+    add_theme_support(
+        'custom-logo',
+        array(
+            'height'      => 1024,
+            'width'       => 1024,
+            'flex-height' => true,
+            'flex-width'  => true,
+        )
+    );
     register_nav_menus(
         array(
             'primary' => __( 'Primary menu', 'bagueship' ),
@@ -65,7 +74,7 @@ function bagueship_topbar_item( string $label, string $url, bool $active = false
 function bagueship_topbar_markup( string $active = '' ): string {
     $items = array(
         'collection' => array( 'Collection', wc_get_page_permalink( 'shop' ) ),
-        'promesse'   => array( 'Promesse', home_url( '/#promesse' ) ),
+        'promesse'   => array( 'Promesse', bagueship_page_url( 'promesse' ) ),
     );
 
     $markup = '<div class="right">';
@@ -101,8 +110,360 @@ function bagueship_topbar_active_key(): string {
     if ( is_front_page() ) {
         return '';
     }
+    if ( is_page( 'bijoux' ) ) {
+        return 'jewels';
+    }
+    if ( is_page( 'promesse' ) ) {
+        return 'about';
+    }
     return '';
 }
+
+/**
+ * Shared Eclipse topbar.
+ *
+ * Colour variables are deliberately independent so split pages can keep the
+ * brand/navigation on black while rendering the cart action on white.
+ */
+function bagueship_eclipse_topbar( array $args = array() ): string {
+    $args = wp_parse_args(
+        $args,
+        array(
+            'active'            => '',
+            'position'          => 'relative',
+            'contained'         => false,
+            'blend'             => false,
+            'brand_color'       => '#080808',
+            'items_color'       => '#080808',
+            'cart_color'        => '#080808',
+            'mobile_cart_color' => '',
+            'background'        => 'transparent',
+            'class'             => '',
+        )
+    );
+
+    $position = in_array( $args['position'], array( 'relative', 'absolute', 'fixed', 'sticky' ), true )
+        ? $args['position']
+        : 'relative';
+    $classes = array( 'eclipse-site-nav', 'is-' . $position );
+    if ( $args['contained'] ) {
+        $classes[] = 'is-contained';
+    }
+    if ( $args['blend'] ) {
+        $classes[] = 'uses-difference';
+    }
+    if ( $args['class'] ) {
+        $classes[] = sanitize_html_class( (string) $args['class'] );
+    }
+
+    $mobile_cart_color = $args['mobile_cart_color'] ?: $args['cart_color'];
+    $style = sprintf(
+        '--eclipse-nav-brand:%1$s;--eclipse-nav-items:%2$s;--eclipse-nav-cart:%3$s;--eclipse-nav-cart-mobile:%4$s;--eclipse-nav-bg:%5$s;',
+        esc_attr( (string) $args['brand_color'] ),
+        esc_attr( (string) $args['items_color'] ),
+        esc_attr( (string) $args['cart_color'] ),
+        esc_attr( (string) $mobile_cart_color ),
+        esc_attr( (string) $args['background'] )
+    );
+
+    $links = array(
+        'collection' => array( 'Collection', wc_get_page_permalink( 'shop' ) ),
+        'jewels'     => array( 'Bijoux', bagueship_page_url( 'bijoux' ) ),
+        'about'      => array( 'À propos', bagueship_page_url( 'promesse' ) ),
+    );
+    $links_markup = '';
+    foreach ( $links as $key => $link ) {
+        $links_markup .= bagueship_topbar_item( $link[0], $link[1], $args['active'] === $key );
+    }
+
+    $cart_count = function_exists( 'bagueship_get_cart_count' ) ? bagueship_get_cart_count() : 0;
+
+    return sprintf(
+        '<nav class="%1$s" style="%2$s" aria-label="%3$s"><a class="eclipse-site-nav__brand" href="%4$s">ECLIPSE</a><div class="eclipse-site-nav__links">%5$s</div><a class="eclipse-site-nav__cart%6$s" href="%7$s"%8$s>Panier (%9$s)</a></nav>',
+        esc_attr( implode( ' ', $classes ) ),
+        $style,
+        esc_attr__( 'Navigation principale', 'bagueship' ),
+        esc_url( home_url( '/' ) ),
+        $links_markup,
+        'cart' === $args['active'] ? ' is-active' : '',
+        esc_url( wc_get_cart_url() ),
+        'cart' === $args['active'] ? ' aria-current="page"' : '',
+        esc_html( (string) $cart_count )
+    );
+}
+
+/**
+ * Classify a catalogue product from its title and WooCommerce categories.
+ */
+function bagueship_catalogue_jewel_type( int $product_id, string $name ): string {
+    $stored_type = (string) get_post_meta( $product_id, '_eclipse_jewel_type', true );
+    if ( in_array( $stored_type, array( 'bagues', 'boucles', 'bracelets', 'colliers' ), true ) ) {
+        return $stored_type;
+    }
+
+    $terms    = wp_get_post_terms( $product_id, 'product_cat', array( 'fields' => 'names' ) );
+    $haystack = remove_accents( strtolower( $name . ' ' . implode( ' ', is_wp_error( $terms ) ? array() : $terms ) ) );
+
+    if ( false !== strpos( $haystack, 'boucle' ) || false !== strpos( $haystack, 'earring' ) ) {
+        return 'boucles';
+    }
+    if ( false !== strpos( $haystack, 'bracelet' ) ) {
+        return 'bracelets';
+    }
+    if (
+        false !== strpos( $haystack, 'collier' ) ||
+        false !== strpos( $haystack, 'pendentif' ) ||
+        false !== strpos( $haystack, 'pendant' ) ||
+        false !== strpos( $haystack, 'necklace' )
+    ) {
+        return 'colliers';
+    }
+    return 'bagues';
+}
+
+/**
+ * Return the real WooCommerce catalogue used by both the Bijoux page and home.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function bagueship_get_catalogue_jewels(): array {
+    if ( ! class_exists( 'WooCommerce' ) ) {
+        return array();
+    }
+
+    $jewels = array();
+    $query  = new WP_Query(
+        array(
+            'post_type'      => 'product',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'tax_query'      => array(
+                array(
+                    'taxonomy' => 'product_visibility',
+                    'field'    => 'name',
+                    'terms'    => array( 'exclude-from-catalog' ),
+                    'operator' => 'NOT IN',
+                ),
+            ),
+            'orderby'        => array(
+                'menu_order' => 'ASC',
+                'date'       => 'DESC',
+            ),
+        )
+    );
+
+    foreach ( $query->posts as $index => $product_post ) {
+        $product = wc_get_product( $product_post->ID );
+        if ( ! $product ) {
+            continue;
+        }
+
+        $name     = get_the_title( $product_post );
+        $meta     = function_exists( 'bagueship_core_get_product_meta' ) ? bagueship_core_get_product_meta( $product_post->ID ) : array();
+        $image_id = get_post_thumbnail_id( $product_post->ID );
+        $jewels[] = array(
+            'name'      => $name,
+            'url'       => get_permalink( $product_post ),
+            'image'     => $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : '',
+            'price'     => wp_strip_all_tags( $product->get_price_html() ),
+            'raw_price' => (float) $product->get_price(),
+            'type'      => bagueship_catalogue_jewel_type( $product_post->ID, $name ),
+            'material'  => remove_accents( strtolower( (string) ( $meta['matiere'] ?? 'acier' ) ) ),
+            'date'      => get_post_timestamp( $product_post ),
+            'order'     => $index,
+        );
+    }
+    wp_reset_postdata();
+
+    return $jewels;
+}
+
+/**
+ * Keep the editorial promise route available on existing installations too.
+ * The slug-specific page-promesse.php template owns the actual presentation.
+ */
+function bagueship_ensure_promise_page(): void {
+    if ( get_option( 'bagueship_promise_page_version' ) === '1' ) {
+        return;
+    }
+    if ( ! get_page_by_path( 'promesse', OBJECT, 'page' ) ) {
+        wp_insert_post(
+            array(
+                'post_title'   => 'Promesse',
+                'post_name'    => 'promesse',
+                'post_status'  => 'publish',
+                'post_type'    => 'page',
+                'post_content' => '',
+            )
+        );
+    }
+    update_option( 'bagueship_promise_page_version', '1', false );
+}
+add_action( 'init', 'bagueship_ensure_promise_page', 30 );
+
+/**
+ * Keep the standalone jewellery catalogue available on existing installs.
+ * The slug-specific page-bijoux.php template owns the presentation.
+ */
+function bagueship_ensure_jewels_page(): void {
+    $page = get_page_by_path( 'bijoux', OBJECT, 'page' );
+
+    if ( ! $page instanceof WP_Post ) {
+        $page_id = wp_insert_post(
+            array(
+                'post_title'   => 'Bijoux',
+                'post_name'    => 'bijoux',
+                'post_status'  => 'publish',
+                'post_type'    => 'page',
+                'post_content' => '',
+            )
+        );
+
+        if ( ! is_wp_error( $page_id ) ) {
+            update_post_meta( (int) $page_id, '_wp_page_template', 'page-bijoux.php' );
+        }
+        return;
+    }
+
+    if ( 'page-bijoux.php' !== get_post_meta( $page->ID, '_wp_page_template', true ) ) {
+        update_post_meta( $page->ID, '_wp_page_template', 'page-bijoux.php' );
+    }
+}
+add_action( 'init', 'bagueship_ensure_jewels_page', 30 );
+
+/**
+ * One-time public-brand migration. Technical keys keep their historical
+ * bagueship_* names so existing carts, product metadata and URLs remain valid.
+ */
+function bagueship_migrate_eclipse_brand(): void {
+    if ( get_option( 'bagueship_eclipse_brand_version' ) === '2' ) {
+        return;
+    }
+
+    $replace_brand = static function ( $value ) use ( &$replace_brand ) {
+        if ( is_string( $value ) ) {
+            return str_replace(
+                array( 'BAGUESHIP', 'Bagueship' ),
+                array( 'ECLIPSE', 'Eclipse' ),
+                $value
+            );
+        }
+        if ( is_array( $value ) ) {
+            foreach ( $value as $key => $item ) {
+                $value[ $key ] = $replace_brand( $item );
+            }
+        }
+        return $value;
+    };
+
+    update_option( 'blogname', 'Eclipse' );
+    update_option( 'woocommerce_email_from_name', 'Eclipse' );
+    update_option( 'blogdescription', $replace_brand( get_option( 'blogdescription', '' ) ) );
+
+    $legal_options = get_option( 'bagueship_legal_info', array() );
+    if ( is_array( $legal_options ) ) {
+        if ( empty( $legal_options['company_name'] ) ) {
+            $legal_options['company_name'] = 'Eclipse';
+        }
+        update_option( 'bagueship_legal_info', $replace_brand( $legal_options ) );
+    }
+
+    global $wpdb;
+    $post_ids = $wpdb->get_col(
+        "SELECT ID FROM {$wpdb->posts}
+        WHERE post_title LIKE '%Bagueship%'
+           OR post_content LIKE '%Bagueship%'
+           OR post_excerpt LIKE '%Bagueship%'
+           OR post_title LIKE '%BAGUESHIP%'
+           OR post_content LIKE '%BAGUESHIP%'
+           OR post_excerpt LIKE '%BAGUESHIP%'"
+    );
+    foreach ( $post_ids as $post_id ) {
+        $post = get_post( (int) $post_id );
+        if ( ! $post instanceof WP_Post ) {
+            continue;
+        }
+        wp_update_post(
+            array(
+                'ID'           => $post->ID,
+                'post_title'   => $replace_brand( $post->post_title ),
+                'post_content' => $replace_brand( $post->post_content ),
+                'post_excerpt' => $replace_brand( $post->post_excerpt ),
+            )
+        );
+    }
+
+    $meta_rows = $wpdb->get_results(
+        "SELECT meta_id, post_id, meta_key FROM {$wpdb->postmeta}
+        WHERE meta_value LIKE '%Bagueship%' OR meta_value LIKE '%BAGUESHIP%'"
+    );
+    foreach ( $meta_rows as $meta_row ) {
+        $value = get_post_meta( (int) $meta_row->post_id, $meta_row->meta_key, true );
+        update_metadata_by_mid( 'post', (int) $meta_row->meta_id, $replace_brand( $value ) );
+    }
+
+    update_option( 'bagueship_eclipse_brand_version', '2', false );
+}
+add_action( 'init', 'bagueship_migrate_eclipse_brand', 31 );
+
+/**
+ * Register the supplied Eclipse mark as the real WordPress logo and site icon.
+ */
+function bagueship_ensure_eclipse_site_identity(): void {
+    if ( '1' === get_option( 'bagueship_eclipse_site_identity_version' ) ) {
+        return;
+    }
+
+    $attachment_ids = get_posts(
+        array(
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+            'meta_key'       => '_bagueship_eclipse_site_logo',
+            'meta_value'     => '1',
+        )
+    );
+    $attachment_id = ! empty( $attachment_ids[0] ) ? (int) $attachment_ids[0] : 0;
+
+    if ( ! $attachment_id ) {
+        $logo_path = get_template_directory() . '/assets/images/eclipse-logo.png';
+        if ( ! file_exists( $logo_path ) || ! is_readable( $logo_path ) ) {
+            return;
+        }
+
+        $uploaded = wp_upload_bits( 'eclipse-logo.png', null, file_get_contents( $logo_path ) );
+        if ( ! empty( $uploaded['error'] ) ) {
+            return;
+        }
+
+        $filetype = wp_check_filetype( $uploaded['file'] );
+        $attachment_id = wp_insert_attachment(
+            array(
+                'guid'           => $uploaded['url'],
+                'post_mime_type' => $filetype['type'] ?: 'image/png',
+                'post_title'     => 'Logo Eclipse',
+                'post_status'    => 'inherit',
+            ),
+            $uploaded['file']
+        );
+        if ( is_wp_error( $attachment_id ) ) {
+            return;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        $metadata = wp_generate_attachment_metadata( $attachment_id, $uploaded['file'] );
+        if ( $metadata ) {
+            wp_update_attachment_metadata( $attachment_id, $metadata );
+        }
+        update_post_meta( $attachment_id, '_bagueship_eclipse_site_logo', '1' );
+    }
+
+    set_theme_mod( 'custom_logo', $attachment_id );
+    update_option( 'site_icon', $attachment_id );
+    update_option( 'bagueship_eclipse_site_identity_version', '1', false );
+}
+add_action( 'init', 'bagueship_ensure_eclipse_site_identity', 32 );
 
 function bagueship_page_url( string $slug ): string {
     $page = get_page_by_path( $slug );
@@ -135,7 +496,7 @@ function bagueship_footer_markup(): string {
     };
 
     return sprintf(
-        '<footer class="bagueship-footer"><div class="bagueship-footer__glow" aria-hidden="true"></div><div class="bagueship-footer__inner"><div class="bagueship-footer__panel"><a class="bagueship-footer__brand" href="%1$s"><span>BAGUESHIP</span><small>Acier sculptural</small></a><div class="bagueship-footer__menus"><section class="bagueship-footer__group"><h2>Aide</h2><nav aria-label="Aide">%2$s</nav></section><section class="bagueship-footer__group"><h2>En savoir plus</h2><nav aria-label="En savoir plus">%3$s</nav></section></div></div><div class="bagueship-footer__bottom"><span>Conçu en France · © 2026</span><span>Bijoux en acier · Commandes sécurisées</span></div></div></footer>',
+        '<footer class="bagueship-footer"><div class="bagueship-footer__glow" aria-hidden="true"></div><div class="bagueship-footer__inner"><div class="bagueship-footer__panel"><a class="bagueship-footer__brand" href="%1$s"><span>ECLIPSE</span><small>Acier sculptural</small></a><div class="bagueship-footer__menus"><section class="bagueship-footer__group"><h2>Aide</h2><nav aria-label="Aide">%2$s</nav></section><section class="bagueship-footer__group"><h2>En savoir plus</h2><nav aria-label="En savoir plus">%3$s</nav></section></div></div><div class="bagueship-footer__bottom"><span>Conçu en France · © 2026</span><span>Bijoux en acier · Commandes sécurisées</span></div></div></footer>',
         esc_url( home_url( '/' ) ),
         $render_links( $help_links ),
         $render_links( $learn_links )
@@ -143,8 +504,8 @@ function bagueship_footer_markup(): string {
 }
 
 function bagueship_enqueue_assets(): void {
-    wp_enqueue_style( 'bagueship-style', get_stylesheet_uri(), array(), BAGUESHIP_THEME_VERSION );
-    wp_enqueue_script( 'bagueship-theme', get_template_directory_uri() . '/assets/theme.js', array(), BAGUESHIP_THEME_VERSION, true );
+    wp_enqueue_style( 'bagueship-style', get_stylesheet_uri(), array(), ECLIPSE_THEME_VERSION );
+    wp_enqueue_script( 'bagueship-theme', get_template_directory_uri() . '/assets/theme.js', array(), ECLIPSE_THEME_VERSION, true );
     wp_enqueue_script( 'bagueship-model-viewer', get_template_directory_uri() . '/assets/vendor/model-viewer/model-viewer-umd.min.js', array(), '4.3.1', true );
 }
 add_action( 'wp_enqueue_scripts', 'bagueship_enqueue_assets' );
@@ -341,24 +702,6 @@ function bagueship_disable_canonical_redirects_for_prefixed_site( $redirect_url 
 }
 add_filter( 'redirect_canonical', 'bagueship_disable_canonical_redirects_for_prefixed_site' );
 
-function bagueship_redirect_collection_archives_to_primary_product(): void {
-    if ( ! is_product_category() ) {
-        return;
-    }
-
-    $term = get_queried_object();
-    if ( ! $term instanceof WP_Term ) {
-        return;
-    }
-
-    $url = bagueship_collection_primary_product_url( $term );
-    if ( $url ) {
-        wp_safe_redirect( $url, 302 );
-        exit;
-    }
-}
-add_action( 'template_redirect', 'bagueship_redirect_collection_archives_to_primary_product', 1 );
-
 function bagueship_breadcrumbs(): void {
     echo '<nav class="breadcrumbs" aria-label="' . esc_attr__( 'Fil d’Ariane', 'bagueship' ) . '">';
     echo '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Accueil', 'bagueship' ) . '</a>';
@@ -386,15 +729,36 @@ function bagueship_homepage_collection_terms(): array {
         array(
             'taxonomy'   => 'product_cat',
             'hide_empty' => false,
-            'slug'       => array( 'abstract', 'finger' ),
-            'orderby'    => 'meta_value_num',
-            'meta_key'   => 'bagueship_order',
-            'order'      => 'ASC',
+            'parent'     => 0,
         )
     );
     if ( is_wp_error( $terms ) ) {
         return array();
     }
+
+    $terms = array_values(
+        array_filter(
+            $terms,
+            static function ( WP_Term $term ): bool {
+                return ! in_array( $term->slug, array( 'uncategorized', 'non-classe' ), true );
+            }
+        )
+    );
+
+    usort(
+        $terms,
+        static function ( WP_Term $left, WP_Term $right ): int {
+            $left_order  = (int) get_term_meta( $left->term_id, 'bagueship_order', true );
+            $right_order = (int) get_term_meta( $right->term_id, 'bagueship_order', true );
+            $left_order  = $left_order > 0 ? $left_order : PHP_INT_MAX;
+            $right_order = $right_order > 0 ? $right_order : PHP_INT_MAX;
+
+            return $left_order === $right_order
+                ? strcasecmp( $left->name, $right->name )
+                : $left_order <=> $right_order;
+        }
+    );
+
     return $terms;
 }
 

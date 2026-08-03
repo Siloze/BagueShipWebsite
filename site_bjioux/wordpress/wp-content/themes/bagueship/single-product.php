@@ -1,654 +1,772 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 global $product;
 if ( ! $product instanceof WC_Product ) {
     $product = wc_get_product( get_the_ID() );
 }
-$bagueship_product_name = get_the_title();
-$bagueship_product_terms = wc_get_product_terms( get_the_ID(), 'product_cat', array( 'fields' => 'names' ) );
-$bagueship_product_meta = function_exists( 'bagueship_core_get_product_meta' ) ? bagueship_core_get_product_meta( get_the_ID() ) : array();
-$bagueship_product_price = $product ? wp_strip_all_tags( $product->get_price_html() ) : '';
-$bagueship_preorder_data = function_exists( 'bagueship_product_preorder_data' ) ? bagueship_product_preorder_data( get_the_ID() ) : array( 'enabled' => false, 'state' => 'available' );
-$bagueship_collection_state = $bagueship_preorder_data['state'] ?? 'available';
-$bagueship_is_preorder = ! empty( $bagueship_preorder_data['enabled'] );
-$bagueship_is_upcoming = 'upcoming' === $bagueship_collection_state;
-$bagueship_product_price_display = $bagueship_product_price;
-if ( $product && $bagueship_is_preorder ) {
-    $bagueship_product_price_display = wp_strip_all_tags( wc_price( bagueship_preorder_price_for_product( $product, get_the_ID() ) ) );
+
+$product_id    = get_the_ID();
+$product_name  = get_the_title();
+$product_meta  = function_exists( 'bagueship_core_get_product_meta' ) ? bagueship_core_get_product_meta( $product_id ) : array();
+$product_price = $product ? wp_strip_all_tags( $product->get_price_html() ) : '';
+$product_short = wp_strip_all_tags( get_the_excerpt() ?: '' );
+$shop_url      = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/' );
+$jewels_url    = function_exists( 'bagueship_page_url' ) ? bagueship_page_url( 'bijoux' ) : home_url( '/bijoux/' );
+$cart_url      = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url( '/panier/' );
+$about_url     = function_exists( 'bagueship_page_url' ) ? bagueship_page_url( 'promesse' ) : home_url( '/promesse/' );
+$cart_count    = function_exists( 'WC' ) && WC()->cart ? WC()->cart->get_cart_contents_count() : 0;
+$material      = $product_meta['matiere'] ?? 'Acier inoxydable 316L';
+$product_terms = get_the_terms( $product_id, 'product_cat' );
+$collection_name = ( $product_terms && ! is_wp_error( $product_terms ) ) ? $product_terms[0]->name : 'Origin';
+$gallery_ids   = $product ? array_values( array_filter( array_map( 'absint', $product->get_gallery_image_ids() ) ) ) : array();
+if ( ! $gallery_ids && has_post_thumbnail( $product_id ) ) {
+    $gallery_ids[] = get_post_thumbnail_id( $product_id );
 }
-$bagueship_product_short = wp_strip_all_tags( get_the_excerpt() ?: '' );
-$bagueship_product_desc = wp_strip_all_tags( get_the_content() ?: '' );
-$bagueship_variations = array();
-$bagueship_variation_sizes = array();
+$product_images = array();
+foreach ( array_slice( $gallery_ids, 0, 3 ) as $gallery_id ) {
+    $image_url = wp_get_attachment_image_url( $gallery_id, 'full' );
+    if ( $image_url ) {
+        $product_images[] = array(
+            'url' => $image_url,
+            'alt' => get_post_meta( $gallery_id, '_wp_attachment_image_alt', true ) ?: $product_name,
+        );
+    }
+}
+
+$preorder_data = function_exists( 'bagueship_product_preorder_data' )
+    ? bagueship_product_preorder_data( $product_id )
+    : array( 'enabled' => false, 'state' => 'available' );
+$is_preorder = ! empty( $preorder_data['enabled'] );
+$is_upcoming = 'upcoming' === ( $preorder_data['state'] ?? 'available' );
+if ( $product && $is_preorder && function_exists( 'bagueship_preorder_price_for_product' ) ) {
+    $product_price = wp_strip_all_tags( wc_price( bagueship_preorder_price_for_product( $product, $product_id ) ) );
+}
+
+$variations = array();
+$sizes      = array();
 if ( $product && $product->is_type( 'variable' ) ) {
     foreach ( $product->get_children() as $variation_id ) {
         $variation = wc_get_product( $variation_id );
         if ( ! $variation ) {
             continue;
         }
-        $attrs = $variation->get_attributes();
-        $size = $attrs['pa_taille'] ?? $attrs['taille'] ?? '';
+        $attributes = $variation->get_attributes();
+        $size       = $attributes['pa_taille'] ?? $attributes['taille'] ?? '';
         if ( '' === $size ) {
             continue;
         }
-        $size = (int) $size;
-        $bagueship_variation_sizes[] = $size;
-        $bagueship_variations[ (string) $size ] = array(
-            'id'       => $variation_id,
-            'price'    => $bagueship_is_preorder ? wp_strip_all_tags( wc_price( bagueship_preorder_price_for_product( $variation, get_the_ID() ) ) ) : wp_strip_all_tags( $variation->get_price_html() ),
-            'original' => wp_strip_all_tags( $variation->get_price_html() ),
+        $size_key             = (string) $size;
+        $sizes[]              = $size_key;
+        $variations[$size_key] = array(
+            'id'    => (int) $variation_id,
+            'price' => $is_preorder && function_exists( 'bagueship_preorder_price_for_product' )
+                ? wp_strip_all_tags( wc_price( bagueship_preorder_price_for_product( $variation, $product_id ) ) )
+                : wp_strip_all_tags( $variation->get_price_html() ),
         );
     }
 }
-$bagueship_variation_sizes = array_values( array_unique( array_filter( $bagueship_variation_sizes ) ) );
-sort( $bagueship_variation_sizes );
-$bagueship_default_size = $bagueship_variation_sizes ? $bagueship_variation_sizes[0] : 56;
-$bagueship_spec_matiere = $bagueship_product_meta['matiere'] ?? 'Acier inoxydable 316L';
-$bagueship_spec_matiere_desc = $bagueship_product_meta['guide_taille'] ?? 'Acier chirurgical, hypoallergénique et résistant à la corrosion.';
-$bagueship_spec_finition = $bagueship_product_meta['finition'] ?? 'Brossé & facetté';
-$bagueship_spec_finition_desc = $bagueship_product_meta['entretien'] ?? 'Surfaces mates et arêtes polies, travaillées à la main.';
-$bagueship_spec_profil = $bagueship_product_meta['largeur'] ?? "Bande 8 mm · 2,4 mm d'épaisseur";
-$bagueship_spec_poids = $bagueship_product_meta['poids_bijou'] ?? '14 g';
-$bagueship_spec_conception = $bagueship_product_meta['fabrication'] ?? 'Déstructurée';
-$bagueship_spec_conception_desc = $bagueship_product_meta['packaging'] ?? 'Volume asymétrique, fait main en édition limitée.';
-$bagueship_spec_tailles = ! empty( $bagueship_variation_sizes ) ? ( min( $bagueship_variation_sizes ) . ' → ' . max( $bagueship_variation_sizes ) . ' (EU)' ) : '48 → 68 (EU)';
-$bagueship_add_to_cart_url = get_permalink( get_the_ID() );
-$bagueship_product_model_url = function_exists( 'bagueship_product_model_url' ) ? bagueship_product_model_url( get_the_ID() ) : '';
-$bagueship_steel_environment_url = function_exists( 'bagueship_steel_environment_url' ) ? bagueship_steel_environment_url() : 'neutral';
-$bagueship_notify_result = isset( $_GET['bagueship_notify'] ) ? sanitize_key( wp_unslash( $_GET['bagueship_notify'] ) ) : '';
-?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title><?php echo esc_html( $bagueship_product_name ); ?> — Bagueship</title>
-<style>
-  :root{
-    --bg:#050506;
-    --bg-soft:#0a0a0c;
-    --ink:#f5f5f7;
-    --ink-dim:#a1a1a6;
-    --ink-faint:#6e6e73;
-    --hair:rgba(255,255,255,.09);
-    --hair-soft:rgba(255,255,255,.06);
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  }
+$sizes = array_values( array_unique( array_filter( $sizes ) ) );
+sort( $sizes, SORT_NATURAL );
 
-  *{ margin:0; padding:0; box-sizing:border-box; }
-  html{ scroll-behavior:auto; }
-  body{
-    background:var(--bg);
+$related_products = array();
+$related_query    = new WP_Query(
+    array(
+        'post_type'      => 'product',
+        'post_status'    => 'publish',
+        'post__not_in'   => array( $product_id ),
+        'posts_per_page' => 4,
+        'orderby'        => 'menu_order title',
+        'order'          => 'ASC',
+    )
+);
+foreach ( $related_query->posts as $related_post ) {
+    $related_product    = wc_get_product( $related_post->ID );
+    $related_products[] = array(
+        'name'  => get_the_title( $related_post ),
+        'url'   => get_permalink( $related_post ),
+        'price' => $related_product ? wp_strip_all_tags( $related_product->get_price_html() ) : '',
+        'image' => get_the_post_thumbnail_url( $related_post, 'large' ) ?: '',
+    );
+}
+wp_reset_postdata();
+?>
+<!doctype html>
+<html <?php language_attributes(); ?>>
+<head>
+<meta charset="<?php bloginfo( 'charset' ); ?>">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?php echo esc_html( $product_name ); ?> — Eclipse</title>
+<?php wp_head(); ?>
+<style>
+  @font-face{
+    font-family:"Eclipse Sans";
+    src:url("<?php echo esc_url( get_template_directory_uri() . '/assets/fonts/space-grotesk-500.ttf' ); ?>") format("truetype");
+    font-weight:500;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"Eclipse Sans";
+    src:url("<?php echo esc_url( get_template_directory_uri() . '/assets/fonts/space-grotesk-700.ttf' ); ?>") format("truetype");
+    font-weight:700;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"Eclipse Display";
+    src:url("<?php echo esc_url( get_template_directory_uri() . '/assets/fonts/bebas-neue-regular.ttf' ); ?>") format("truetype");
+    font-weight:400;
+    font-display:swap;
+  }
+  :root{
+    --night:#020202;
+    --paper:#fff;
+    --ink:#090909;
+    --muted:#666;
+    --faint:#999;
+    --line:#d8d8d8;
+    --dark-line:#242424;
+    --split:58.55%;
+    --edge:clamp(28px,4.2vw,66px);
+    --font:"Eclipse Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--paper)}
+  body.eclipse-product-body{
     color:var(--ink);
+    background:var(--paper);
     font-family:var(--font);
+    font-weight:500;
     -webkit-font-smoothing:antialiased;
-    text-rendering:optimizeLegibility;
     overflow-x:hidden;
   }
-  ::selection{ background:rgba(245,245,247,.18); }
-
-  /* ---------- Top bar ---------- */
-  .nav{
-    position:fixed; top:0; left:0; right:0; z-index:50;
-    height:52px;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 max(22px, 4vw);
-    background:rgba(6,6,8,.55);
-    backdrop-filter:saturate(160%) blur(18px);
-    -webkit-backdrop-filter:saturate(160%) blur(18px);
-    border-bottom:1px solid var(--hair-soft);
-  }
-  .nav .brand{
-    font-size:15px; font-weight:600; letter-spacing:.34em;
-    padding-left:.34em;
-  }
-  .nav .right{
-    position:absolute; left:50%; transform:translateX(-50%);
-    display:flex; align-items:center; justify-content:center; gap:34px;
-    font-size:13px; color:var(--ink-dim); font-weight:700; letter-spacing:.2em; text-transform:uppercase; white-space:nowrap;
-  }
-  .nav .right a{ position:relative; padding:18px 0 17px; color:inherit; text-decoration:none; transition:color .25s; }
-  .nav .right a::after{ content:""; position:absolute; left:0; right:0; bottom:12px; height:1px; background:currentColor; transform:scaleX(0); transform-origin:left center; transition:transform .32s cubic-bezier(.16,1,.3,1); opacity:.9; }
-  .nav .right a:hover::after,
-  .nav .right a:focus-visible::after,
-  .nav .right a.is-active::after,
-  .nav .right a[aria-current="page"]::after{ transform:scaleX(1); }
-  .nav .right a.is-active,
-  .nav .right a[aria-current="page"]{ color:inherit; }
-  .nav .nav-actions{ position:absolute; right:max(22px,4vw); top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:14px; }
-  .nav .cart-link{ position:relative; width:38px; height:38px; border-radius:50%; color:var(--ink-dim); display:inline-flex; align-items:center; justify-content:center; transition:background .25s, box-shadow .25s, transform .18s; }
-  .nav .cart-link:hover,
-  .nav .cart-link:focus-visible,
-  .nav .cart-link.is-active,
-  .nav .cart-link[aria-current="page"]{ background:rgba(255,255,255,.06); box-shadow:inset 0 0 0 1px var(--hair); transform:translateY(-1px); }
-  .nav .cart-icon{ width:28px; height:22px; fill:none; stroke:currentColor; stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; }
-  .nav .cart-count{
-    position:absolute; right:-2px; top:1px; min-width:14px; height:14px; padding:0 4px; border-radius:999px;
-    background:var(--ink); color:#0b0b0d; font-size:9px; font-weight:700;
-    display:inline-flex; align-items:center; justify-content:center;
-  }
-  .nav .price-pill{
-    position:absolute; right:calc(max(22px, 4vw) + 52px);
-    color:var(--ink); font-weight:600; letter-spacing:.01em;
-  }
-  .screen-reader-text{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-  @media (max-width:640px){
-    .nav{ padding:0 14px; }
-    .nav .brand{ font-size:10px; letter-spacing:.12em; padding-left:.12em; }
-    .nav .right{ gap:18px; font-size:11px; letter-spacing:.14em; }
-    .nav .nav-actions{ right:10px; }
-    .nav .cart-link{ width:34px; height:34px; }
-    .nav .cart-icon{ width:25px; height:20px; }
-    .nav .price-pill{ right:52px; font-size:11px; }
+  a{color:inherit;text-decoration:none}
+  button,select{font:inherit}
+  .screen-reader-text{
+    position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
   }
 
-  /* ---------- Scroll stage ---------- */
-  .scrollzone{ position:relative; height:440vh; }
-  .stage{
-    position:sticky; top:0; height:100vh;
-    display:flex; align-items:center; justify-content:center;
+  .product-top{
+    --product-media-height:clamp(650px,68.1svh,760px);
+    position:relative;
+    display:grid;
+    grid-template-columns:var(--split) calc(100% - var(--split));
+    width:100%;
+    height:var(--product-media-height);
+    min-height:0;
+  }
+  .product-media{
+    --product-thumb-size:120px;
+    --product-stage-gap:clamp(24px,2.4vw,36px);
+    --product-stage-top-gap:72px;
+    position:relative;
     overflow:hidden;
-  }
-  /* studio key light + vignette */
-  .stage::before{
-    content:""; position:absolute; inset:0;
     background:
-      radial-gradient(60% 48% at 50% 38%, rgba(78,84,96,.30), rgba(40,44,54,.06) 46%, transparent 70%),
-      radial-gradient(120% 90% at 50% 50%, transparent 52%, rgba(0,0,0,.65) 100%);
+      radial-gradient(55% 45% at 55% 52%,rgba(255,255,255,.025),transparent 72%),
+      var(--night);
+    border-right:1px solid #151515;
+  }
+  .product-image-stage .product-main-image{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center;
+    transition:opacity .28s ease,transform .7s cubic-bezier(.16,1,.3,1);
+  }
+  .product-image-stage{
+    position:absolute;
+    z-index:1;
+    top:var(--product-stage-top-gap);
+    right:var(--product-stage-gap);
+    bottom:var(--product-stage-gap);
+    left:calc(var(--edge) + var(--product-thumb-size) + var(--product-stage-gap));
+    overflow:hidden;
+    background:#050505;
+  }
+  .product-info{
+    position:relative;
+    background:var(--paper);
+    padding:72px clamp(42px,4vw,72px) 45px clamp(45px,3.8vw,66px);
+  }
+
+  /* Split navigation */
+  .product-nav{
+    position:absolute;
+    z-index:20;
+    inset:0 0 auto;
+    height:96px;
+    color:#f7f7f7;
     pointer-events:none;
   }
-  .platform{
-    position:absolute; left:50%; top:62%;
-    width:54vmin; height:13vmin; transform:translateX(-50%);
-    background:radial-gradient(ellipse at center, rgba(150,160,176,.16), transparent 68%);
-    filter:blur(22px); pointer-events:none;
-  }
-
-  .stage3d{
-    position:relative; z-index:2;
-    width:min(68vmin,520px); height:min(68vmin,520px);
-  }
-  .stage3d::before{
-    content:""; position:absolute; left:50%; top:64%; width:78%; height:16%;
-    transform:translateX(-50%);
-    background:radial-gradient(ellipse at center, rgba(150,160,176,.18), transparent 68%);
-    filter:blur(22px); pointer-events:none;
-  }
-  .ring-fade{ transition:opacity .2s linear; will-change:opacity; }
-  model-viewer.product-model{
-    display:block; width:100%; height:100%;
-    background:transparent; --poster-color:transparent;
-    position:relative; z-index:2;
-  }
-
-  /* ---------- Kinetic overlay text ---------- */
-  .cues{
-    position:absolute; inset:0; z-index:6;
-    display:flex; align-items:center; justify-content:center;
-    pointer-events:none; text-align:center;
-  }
-  .cue{
-    position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%);
-    width:min(92vw, 760px);
-    opacity:0; will-change:opacity, transform;
-  }
-  .cue.title h1{
-    font-size:clamp(64px, 15vw, 168px);
-    font-weight:600; letter-spacing:-.045em; line-height:.92;
-  }
-  .cue.title p{
-    margin-top:18px; font-size:clamp(15px,2.4vw,21px);
-    color:var(--ink-dim); font-weight:400; letter-spacing:.005em;
-  }
-  .cue.phrase p{
-    font-size:clamp(26px, 5vw, 54px);
-    font-weight:600; letter-spacing:-.025em; line-height:1.08;
-    color:var(--ink);
-  }
-  .scrollhint{
-    position:fixed; left:0; right:0; bottom:30px; z-index:7;
-    display:flex; flex-direction:column; align-items:center; gap:11px;
-    color:var(--ink-faint); font-size:11px; letter-spacing:.32em;
-    font-weight:500; text-transform:uppercase;
-    transition:opacity .4s; pointer-events:none;
-  }
-  .scrollhint .line{
-    width:1px; height:40px;
-    background:linear-gradient(var(--ink-faint), transparent);
-    animation:drift 2.4s ease-in-out infinite;
-  }
-  @keyframes drift{ 0%,100%{ transform:scaleY(.5); opacity:.4 } 50%{ transform:scaleY(1); opacity:1 } }
-
-  /* ---------- Reveal sections ---------- */
-  .reveal{ opacity:0; transform:translateY(34px); transition:opacity 1s cubic-bezier(.16,1,.3,1), transform 1s cubic-bezier(.16,1,.3,1); }
-  .reveal.in{ opacity:1; transform:none; }
-
-  .section{ position:relative; padding:0 max(22px, 4vw); }
-  .wrap{ max-width:980px; margin:0 auto; }
-
-  .eyebrow{
-    font-size:12px; letter-spacing:.34em; text-transform:uppercase;
-    color:var(--ink-faint); font-weight:600;
-  }
-
-  /* Specs */
-  .specs{ padding-top:14vh; padding-bottom:12vh; }
-  .specs h2{
-    font-size:clamp(34px,6vw,68px); font-weight:600;
-    letter-spacing:-.035em; line-height:1.02; margin-top:20px;
-    max-width:14ch;
-  }
-  .specs .lead{
-    margin-top:26px; max-width:46ch; color:var(--ink-dim);
-    font-size:clamp(16px,2.2vw,20px); line-height:1.55; font-weight:400;
-    text-wrap:pretty;
-  }
-  .spec-list{ margin-top:9vh; border-top:1px solid var(--hair); }
-  .spec-row{
-    display:grid; grid-template-columns:minmax(120px,1fr) 2fr;
-    gap:24px; align-items:baseline;
-    padding:30px 4px; border-bottom:1px solid var(--hair);
-  }
-  .spec-row .k{
-    font-size:13px; letter-spacing:.04em; color:var(--ink-faint);
-    font-weight:500; text-transform:uppercase;
-  }
-  .spec-row .v{
-    font-size:clamp(20px,3vw,30px); font-weight:500;
-    letter-spacing:-.02em; color:var(--ink);
-  }
-  .spec-row .v small{ display:block; margin-top:8px; font-size:14px; color:var(--ink-dim); font-weight:400; letter-spacing:0; }
-
-  /* Purchase */
-  .buy{ padding-top:13vh; padding-bottom:20vh; text-align:center; }
-  .buy .name{ font-size:clamp(40px,8vw,86px); font-weight:600; letter-spacing:-.04em; line-height:1; }
-  .buy .sub{ margin-top:16px; color:var(--ink-dim); font-size:clamp(15px,2.2vw,19px); }
-  .buy .amount{ margin-top:40px; font-size:clamp(30px,5vw,46px); font-weight:600; letter-spacing:-.02em; }
-  .buy .from{ display:block; font-size:13px; color:var(--ink-faint); letter-spacing:.04em; margin-bottom:6px; font-weight:500; text-transform:uppercase; }
-  .commerce-note{
-    margin:18px auto 0;
-    max-width:560px;
-    color:var(--ink-dim);
-    font-size:14px;
-    line-height:1.55;
-  }
-  .commerce-badge{
-    display:inline-flex; align-items:center; justify-content:center;
-    height:30px; padding:0 13px; border-radius:999px;
-    box-shadow:inset 0 0 0 1px var(--hair);
-    color:var(--ink); font-size:11px; letter-spacing:.22em;
-    text-transform:uppercase; font-weight:700;
-    margin-bottom:18px;
-  }
-
-  .sizes{ margin:48px auto 0; max-width:560px; }
-  .sizes .head{
-    display:flex; align-items:baseline; justify-content:space-between;
-    margin-bottom:18px;
-  }
-  .sizes .head .lbl{ font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; }
-  .sizes .head .circ{ font-size:14px; color:var(--ink-dim); font-variant-numeric:tabular-nums; }
-  .chips{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-  .chip{
-    appearance:none; border:1px solid var(--hair); background:transparent;
-    color:var(--ink); font-family:inherit; font-size:16px; font-weight:500;
-    width:54px; height:54px; border-radius:50%;
-    cursor:pointer; transition:border-color .2s, background .2s, transform .2s, color .2s;
-    font-variant-numeric:tabular-nums;
-  }
-  .chip:hover{ border-color:rgba(255,255,255,.45); }
-  .chip[aria-pressed="true"]{
-    background:var(--ink); color:#0b0b0d; border-color:var(--ink);
-    transform:scale(1.04);
-  }
-
-  .cta{
-    margin-top:46px; display:flex; flex-direction:column; align-items:center; gap:16px;
-  }
-  .btn-buy{
-    appearance:none; border:none; cursor:pointer; font-family:inherit;
-    background:var(--ink); color:#0b0b0d;
-    font-size:18px; font-weight:600; letter-spacing:-.01em;
-    padding:0 46px; height:58px; border-radius:30px; min-width:280px;
-    transition:transform .18s cubic-bezier(.16,1,.3,1), background .25s, color .25s;
-  }
-  .btn-buy:hover{ transform:translateY(-1px); }
-  .btn-buy:active{ transform:translateY(0) scale(.99); }
-  .btn-buy.added{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--hair); }
-  .btn-buy[disabled]{ opacity:.45; cursor:not-allowed; transform:none; }
-  .reassure{ font-size:13px; color:var(--ink-faint); letter-spacing:.01em; }
-  .notify-form{
-    width:min(100%,560px);
-    margin:40px auto 0;
-    display:grid;
-    grid-template-columns:1fr auto;
-    gap:12px;
-    padding:8px;
-    border-radius:999px;
-    background:rgba(255,255,255,.035);
-    box-shadow:inset 0 0 0 1px var(--hair);
-  }
-  .notify-form input{
-    min-width:0;
-    height:52px;
-    border:none;
-    outline:none;
-    background:transparent;
-    color:var(--ink);
-    font:inherit;
-    padding:0 18px;
-  }
-  .notify-form input::placeholder{ color:var(--ink-faint); }
-  .notify-form button{
-    border:none;
-    height:52px;
-    border-radius:999px;
-    padding:0 24px;
-    background:var(--ink);
-    color:#0b0b0d;
-    font:inherit;
+  .product-nav a{pointer-events:auto}
+  .wordmark{
+    position:absolute;
+    left:var(--edge);
+    top:39px;
+    font-size:clamp(16px,1.25vw,21px);
     font-weight:700;
+    letter-spacing:.42em;
+    line-height:1;
+  }
+  .main-links{
+    position:absolute;
+    left:28.9%;
+    top:32px;
+    display:flex;
+    gap:clamp(45px,5.2vw,82px);
+    text-transform:uppercase;
+    font-size:clamp(10px,.78vw,13px);
+    font-weight:700;
+    letter-spacing:.075em;
+  }
+  .main-links a{position:relative;padding:13px 0}
+  .main-links a:last-child{margin-left:8px}
+  .main-links a::after{
+    content:"";position:absolute;left:0;right:0;bottom:5px;height:1px;
+    background:currentColor;transform:scaleX(0);
+  }
+  .main-links a:hover::after,.main-links a:focus-visible::after,.main-links a.is-active::after{
+    transform:scaleX(1);
+  }
+  .product-collection{
+    position:absolute;
+    left:calc(var(--split) + 3.8%);
+    top:41px;
+    color:#858585;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+  }
+  .cart-link{
+    position:absolute;
+    right:4.2%;
+    top:41px;
+    color:#4b4b4b;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  /* Empty media composition, ready for future photography. */
+  .thumb-list{
+    position:absolute;
+    z-index:3;
+    left:var(--edge);
+    top:calc(var(--product-stage-top-gap) + 74px);
+    display:grid;
+    gap:17px;
+  }
+  .media-thumb{
+    width:120px;
+    height:120px;
+    border:1px solid #262626;
+    background:#050505;
+    cursor:pointer;
+    transition:border-color .25s,background .25s;
+    overflow:hidden;
+    padding:0;
+  }
+  .media-thumb img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
+  .media-thumb.is-active,.media-thumb:hover,.media-thumb:focus-visible{
+    border-color:#454545;
+    background:#070707;
+  }
+
+  /* Product information */
+  .product-collection-label{
+    margin:0;
+    color:#858585;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.09em;
+    line-height:1;
+    text-transform:uppercase;
+  }
+  .product-heading{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:start;
+    gap:30px;
+    margin-top:27px;
+  }
+  .product-title{
+    margin:0;
+    font-family:"Eclipse Display","Arial Narrow",sans-serif;
+    font-size:clamp(48px,3.55vw,60px);
+    font-weight:400;
+    letter-spacing:.005em;
+    line-height:.9;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .product-price{
+    padding-top:22px;
+    color:#2e2e2e;
+    font-size:18px;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  .product-description{
+    max-width:46ch;
+    min-height:72px;
+    margin:43px 0 0;
+    color:#4f4f4f;
+    font-size:14px;
+    line-height:1.75;
+  }
+  .product-features{
+    margin-top:34px;
+    display:grid;
+    gap:18px;
+  }
+  .feature-row{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    color:#545454;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .feature-icon{
+    position:relative;
+    width:23px;
+    height:23px;
+    flex:0 0 23px;
+    border:1px solid #aaa;
+    border-radius:50%;
+  }
+  .feature-icon::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:7px;
+    height:7px;
+    border:1px solid #999;
+    transform:translate(-50%,-50%) rotate(45deg);
+  }
+  .purchase-area{margin-top:48px}
+  .product-info > .product-description,
+  .product-info > .product-features,
+  .product-info > .purchase-area{
+    margin-right:clamp(78px,6vw,100px);
+  }
+  .size-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+    color:#555;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+  .size-guide{padding-bottom:3px;border-bottom:1px solid #a9a9a9;color:#777}
+  .size-select-wrap{position:relative}
+  .size-select{
+    width:100%;
+    height:54px;
+    appearance:none;
+    border:1px solid var(--line);
+    border-radius:0;
+    background:var(--paper);
+    color:#666;
+    padding:0 50px 0 20px;
+    outline:none;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
     cursor:pointer;
   }
-  .notify-status{
-    margin:14px auto 0;
-    max-width:560px;
-    color:var(--ink-dim);
-    font-size:14px;
-    line-height:1.45;
+  .size-select-wrap::after{
+    content:"⌄";
+    position:absolute;
+    right:21px;
+    top:50%;
+    color:#777;
+    transform:translateY(-58%);
+    pointer-events:none;
   }
-  .notify-status.ok{ color:var(--ink); }
-  @media (max-width:560px){
-    .notify-form{ grid-template-columns:1fr; border-radius:28px; }
-    .notify-form button{ width:100%; }
+  .purchase-row{
+    display:grid;
+    grid-template-columns:1fr 62px;
+    gap:20px;
+    margin-top:28px;
+  }
+  .add-button{
+    height:60px;
+    border:0;
+    background:#050505;
+    color:#f7f7f7;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    transition:background .25s;
+  }
+  .add-button:hover,.add-button:focus-visible{background:#242424}
+  .add-button:disabled{opacity:.5;cursor:not-allowed}
+  .wish-button{
+    height:60px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:#777;
+    cursor:pointer;
+    font-size:29px;
+    font-weight:400;
+    line-height:1;
   }
 
-  .footer{
-    border-top:1px solid var(--hair-soft);
-    padding:34px max(22px,4vw); text-align:center;
-    color:var(--ink-faint); font-size:12px; letter-spacing:.02em;
+  /* Related products */
+  .recommendations{
+    background:var(--paper);
+    padding:47px 9.15vw 15px 5.2vw;
   }
-  .footer .fb{ letter-spacing:.34em; color:var(--ink-dim); font-weight:600; }
+  .recommendations-title{
+    margin:0 0 28px;
+    color:#555;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+  .related-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:40px;
+  }
+  .related-media{
+    width:100%;
+    aspect-ratio:1.74/1;
+    border:1px solid #242424;
+    background:#050505;
+    transition:background .25s,border-color .25s;
+    overflow:hidden;
+  }
+  .related-media img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center 44%;
+    transition:transform .7s cubic-bezier(.16,1,.3,1),filter .35s ease;
+  }
+  .related-card:hover .related-media,.related-card:focus-visible .related-media{
+    background:#090909;
+    border-color:#555;
+  }
+  .related-card:hover .related-media img,.related-card:focus-visible .related-media img{
+    transform:scale(1.025);
+    filter:brightness(1.06);
+  }
+  .related-name{
+    margin-top:10px;
+    color:#333;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .related-price{
+    margin-top:4px;
+    color:#333;
+    font-size:11px;
+    font-weight:700;
+  }
 
-  @media (prefers-reduced-motion: reduce){
-    .reveal{ transition:none; opacity:1; transform:none; }
-    .scrollhint .line{ animation:none; }
+  .product-info>*{opacity:0;animation:infoEnter .7s cubic-bezier(.16,1,.3,1) forwards}
+  .product-heading{animation-delay:.08s}
+  .product-description{animation-delay:.14s}
+  .product-features{animation-delay:.2s}
+  .purchase-area{animation-delay:.26s}
+  @keyframes infoEnter{
+    from{opacity:0;transform:translateY(14px)}
+    to{opacity:1;transform:translateY(0)}
   }
+
+  @media(min-width:901px) and (min-aspect-ratio:16/10){
+    .product-top{--product-media-height:clamp(620px,72svh,730px)}
+    .product-info{padding-top:72px}
+    .product-description{margin-top:30px}
+    .product-features{margin-top:24px;gap:14px}
+    .purchase-area{margin-top:32px}
+    .recommendations{padding-top:32px}
+  }
+  /* Keep the full product story and recommendation prices visible on short
+     desktop screens such as a MacBook in full-screen mode. */
+  @media(min-width:901px) and (max-height:950px){
+    .product-top{--product-media-height:630px}
+    .product-info{padding-top:72px;padding-bottom:22px}
+    .product-heading{margin-top:24px}
+    .product-title{font-size:54px}
+    .product-price{padding-top:17px;font-size:16px}
+    .product-description{
+      margin-top:28px;
+      min-height:72px;
+      font-size:12px;
+      line-height:1.6;
+    }
+    .product-features{margin-top:24px;gap:10px}
+    .feature-row{gap:14px;font-size:10px}
+    .feature-icon{width:18px;height:18px;flex-basis:18px}
+    .purchase-area{margin-top:45px}
+    .size-head{margin-bottom:11px}
+    .size-select{height:48px}
+    .purchase-row{margin-top:18px}
+    .add-button,.wish-button{height:52px}
+    .recommendations{padding-top:20px;padding-bottom:12px}
+    .recommendations-title{margin-bottom:14px}
+    .related-grid{gap:30px}
+    .related-media{aspect-ratio:2.15/1}
+    .related-name{margin-top:7px}
+    .related-price{margin-top:2px}
+  }
+  @media(max-width:1080px){
+    .product-info{padding-inline:35px}
+    .main-links{gap:32px}
+    .product-media{--product-thumb-size:95px}
+    .media-thumb{width:95px;height:95px}
+    .purchase-area{margin-top:30px}
+    .product-features{gap:13px}
+  }
+  @media(max-width:760px){
+    :root{--split:100%}
+    .product-top{
+      --product-media-height:max(360px,48svh);
+      display:block;
+      height:auto;
+      min-height:0;
+    }
+    .product-media{height:var(--product-media-height);min-height:0}
+    .product-image-stage{
+      inset:0;
+      width:100%;
+      height:var(--product-media-height);
+      max-width:none;
+      aspect-ratio:auto;
+    }
+    .product-info{padding:50px 22px 48px}
+    .product-nav{height:105px}
+    .wordmark{left:20px;top:30px;font-size:14px}
+    .main-links{left:20px;right:20px;top:67px;justify-content:space-between;gap:10px;font-size:10px}
+    .product-collection{display:none}
+    .cart-link{right:20px;top:30px;color:#f7f7f7;font-size:10px}
+    .thumb-list{left:18px;top:112px;gap:10px}
+    .media-thumb{width:64px;height:64px}
+    .product-title{font-size:54px;white-space:normal}
+    .product-price{font-size:15px}
+    .product-description{margin-top:30px}
+    .product-description{min-height:0}
+    .product-info > .product-description,
+    .product-info > .product-features,
+    .product-info > .purchase-area{margin-right:0}
+    .purchase-row{grid-template-columns:1fr 58px;gap:12px}
+    .related-grid{
+      grid-template-columns:repeat(var(--related-columns,4),minmax(240px,1fr));
+      overflow-x:auto;
+      margin-inline:-5.2vw;
+      padding-inline:5.2vw;
+      scrollbar-width:none;
+    }
+    .related-grid::-webkit-scrollbar{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .product-info>*{opacity:1;animation:none}
+  }
+  body.eclipse-product-body .bagueship-cookie-banner{display:none!important}
 </style>
-  <?php wp_head(); ?>
 </head>
-<body <?php body_class(); ?>>
+<body <?php body_class( 'eclipse-product-body' ); ?>>
 <?php wp_body_open(); ?>
 
-  <nav class="nav">
-    <a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>">BAGUESHIP</a>
-    <?php echo bagueship_topbar_markup( bagueship_topbar_active_key() ); ?>
-    <?php if ( ! $bagueship_is_upcoming ) : ?>
-      <span class="price-pill"><?php echo wp_kses_post( $bagueship_product_price_display ); ?></span>
-    <?php endif; ?>
-  </nav>
+<?php
+echo bagueship_eclipse_topbar(
+    array(
+        'active'            => 'jewels',
+        'position'          => 'absolute',
+        'brand_color'       => '#f7f7f7',
+        'items_color'       => '#f7f7f7',
+        'cart_color'        => '#4b4b4b',
+        'mobile_cart_color' => '#f7f7f7',
+    )
+);
+?>
 
-  <!-- ============ Pinned rotating ring ============ -->
-  <section class="scrollzone" id="top">
-    <div class="stage">
-      <div class="platform"></div>
-
-      <div class="stage3d ring-fade" id="ringFade">
-        <?php if ( $bagueship_product_model_url ) : ?>
-          <model-viewer
-            class="product-model"
-            id="productModel"
-            src="<?php echo esc_url( $bagueship_product_model_url ); ?>"
-            alt="<?php echo esc_attr( $bagueship_product_name ); ?>"
-            loading="eager"
-            camera-orbit="25deg 68deg 105%"
-            min-camera-orbit="auto auto 70%"
-            max-camera-orbit="auto auto 170%"
-            environment-image="<?php echo esc_attr( $bagueship_steel_environment_url ); ?>"
-            tone-mapping="aces"
-            shadow-intensity="1.18"
-            shadow-softness=".5"
-            exposure=".82"
-            interaction-prompt="none">
-          </model-viewer>
-        <?php endif; ?>
-      </div>
-
-      <div class="cues" id="cues">
-        <div class="cue title" data-cue="0">
-          <h1><?php echo esc_html( $bagueship_product_name ); ?></h1>
-          <p><?php echo esc_html( $bagueship_product_short ?: $bagueship_spec_matiere ); ?></p>
+<main>
+  <section class="product-top">
+    <div class="product-media" aria-label="Visuels de <?php echo esc_attr( $product_name ); ?>">
+      <?php if ( $product_images ) : ?>
+        <div class="product-image-stage">
+          <img
+            class="product-main-image"
+            id="productMainImage"
+            src="<?php echo esc_url( $product_images[0]['url'] ); ?>"
+            alt="<?php echo esc_attr( $product_images[0]['alt'] ); ?>"
+          >
         </div>
-        <div class="cue phrase" data-cue="1"><p>Forgée dans l'acier inoxydable&nbsp;316L.</p></div>
-        <div class="cue phrase" data-cue="2"><p>Une architecture déstructurée,<br/>taillée à la lumière.</p></div>
-        <div class="cue phrase" data-cue="3"><p>Pensée pour ne jamais vieillir.</p></div>
+      <?php endif; ?>
+      <div class="thumb-list" aria-label="Vues du produit">
+        <?php foreach ( $product_images as $index => $product_image ) : ?>
+          <button
+            class="media-thumb<?php echo 0 === $index ? ' is-active' : ''; ?>"
+            type="button"
+            data-product-image="<?php echo esc_url( $product_image['url'] ); ?>"
+            data-product-alt="<?php echo esc_attr( $product_image['alt'] ); ?>"
+            aria-label="<?php echo esc_attr( sprintf( 'Vue %d', $index + 1 ) ); ?>"
+            aria-pressed="<?php echo 0 === $index ? 'true' : 'false'; ?>"
+          >
+            <img src="<?php echo esc_url( $product_image['url'] ); ?>" alt="">
+          </button>
+        <?php endforeach; ?>
       </div>
     </div>
 
-    <div class="scrollhint" id="hint">
-      <span>Faites défiler</span>
-      <span class="line"></span>
-    </div>
-  </section>
-
-  <!-- ============ Specs ============ -->
-  <section class="section specs" id="specs">
-    <div class="wrap">
-      <div class="eyebrow reveal">Spécifications</div>
-      <h2 class="reveal">Chaque détail, sculpté.</h2>
-      <p class="lead reveal"><?php echo esc_html( $bagueship_product_desc ?: $bagueship_product_short ); ?></p>
-
-      <div class="spec-list">
-        <div class="spec-row reveal">
-          <div class="k">Matériau</div>
-          <div class="v"><?php echo esc_html( $bagueship_spec_matiere ); ?><small><?php echo esc_html( $bagueship_spec_matiere_desc ); ?></small></div>
-        </div>
-        <div class="spec-row reveal">
-          <div class="k">Finition</div>
-          <div class="v"><?php echo esc_html( $bagueship_spec_finition ); ?><small><?php echo esc_html( $bagueship_spec_finition_desc ); ?></small></div>
-        </div>
-        <div class="spec-row reveal">
-          <div class="k">Profil</div>
-          <div class="v"><?php echo esc_html( $bagueship_spec_profil ); ?></div>
-        </div>
-        <div class="spec-row reveal">
-          <div class="k">Poids</div>
-          <div class="v"><?php echo esc_html( $bagueship_spec_poids ); ?></div>
-        </div>
-        <div class="spec-row reveal">
-          <div class="k">Conception</div>
-          <div class="v"><?php echo esc_html( $bagueship_spec_conception ); ?><small><?php echo esc_html( $bagueship_spec_conception_desc ); ?></small></div>
-        </div>
-        <div class="spec-row reveal">
-          <div class="k">Tailles</div>
-          <div class="v"><?php echo esc_html( $bagueship_spec_tailles ); ?></div>
-        </div>
+    <div class="product-info">
+      <p class="product-collection-label"><?php echo esc_html( $collection_name ); ?></p>
+      <div class="product-heading">
+        <h1 class="product-title"><?php echo esc_html( $product_name ); ?></h1>
+        <div class="product-price" id="productPrice"><?php echo esc_html( $product_price ); ?></div>
       </div>
-    </div>
-  </section>
 
-  <!-- ============ Purchase ============ -->
-  <section class="section buy" id="acheter">
-    <div class="wrap">
-      <div class="name reveal"><?php echo esc_html( $bagueship_product_name ); ?></div>
-      <div class="sub reveal"><?php echo esc_html( $bagueship_spec_matiere . " · " . $bagueship_spec_finition ); ?></div>
+      <p class="product-description">
+        <?php echo esc_html( $product_short ?: 'Symbole de force intérieure et d’affirmation de soi. Le cercle brut représente ton essence, ta vérité, ton chemin.' ); ?>
+      </p>
 
-      <?php if ( $bagueship_is_preorder || $bagueship_is_upcoming ) : ?>
-        <div class="commerce-badge reveal"><?php echo esc_html( $bagueship_is_preorder ? 'Précommande ouverte' : 'Collection à venir' ); ?></div>
-      <?php endif; ?>
+      <div class="product-features">
+        <div class="feature-row"><span class="feature-icon" aria-hidden="true"></span><span><?php echo esc_html( $material ); ?></span></div>
+        <div class="feature-row"><span class="feature-icon" aria-hidden="true"></span><span>Fait à la main</span></div>
+        <div class="feature-row"><span class="feature-icon" aria-hidden="true"></span><span>Livraison &amp; retours offerts</span></div>
+        <div class="feature-row"><span class="feature-icon" aria-hidden="true"></span><span>Garantie 2 ans</span></div>
+      </div>
 
-      <?php if ( ! $bagueship_is_upcoming ) : ?>
-        <div class="amount reveal" id="bagueshipAmount"><span class="from"><?php echo esc_html( $bagueship_is_preorder ? 'Prix soutien' : 'À partir de' ); ?></span><span id="bagueshipAmountValue"><?php echo wp_kses_post( $bagueship_product_price_display ); ?></span></div>
-      <?php endif; ?>
-
-      <?php if ( $bagueship_is_preorder ) : ?>
-        <p class="commerce-note reveal">
-          <?php
-          $preorder_note = ! empty( $bagueship_preorder_data['message'] ) ? $bagueship_preorder_data['message'] : 'Précommande à prix soutien, réservée aux premières pièces de la série.';
-          echo esc_html( $preorder_note );
-          if ( ! empty( $bagueship_preorder_data['estimate'] ) ) {
-              echo ' ' . esc_html( 'Expédition estimée : ' . $bagueship_preorder_data['estimate'] . '.' );
-          }
-          ?>
-        </p>
-      <?php elseif ( $bagueship_is_upcoming ) : ?>
-        <p class="commerce-note reveal">Cette pièce appartient à une collection en préparation. Les commandes ouvriront lorsque la série sera prête.</p>
-      <?php endif; ?>
-
-      <?php if ( ! $bagueship_is_upcoming ) : ?>
-        <div class="sizes reveal">
-          <div class="head">
-            <span class="lbl">Taille de doigt</span>
-            <span class="circ" id="circ">Circonférence <?php echo esc_html( $bagueship_default_size ); ?>&nbsp;mm</span>
+      <?php if ( ! $is_upcoming ) : ?>
+        <div class="purchase-area">
+          <div class="size-head">
+            <span>Taille</span>
+            <a class="size-guide" href="<?php echo esc_url( $about_url ); ?>">Guide des tailles</a>
           </div>
-          <div class="chips" id="chips" role="group" aria-label="Taille de bague"></div>
+          <div class="size-select-wrap">
+            <select class="size-select" id="sizeSelect" aria-label="Sélectionner une taille">
+              <?php if ( $sizes ) : ?>
+                <option value="">Sélectionner une taille</option>
+                <?php foreach ( $sizes as $size ) : ?>
+                  <option value="<?php echo esc_attr( $size ); ?>"><?php echo esc_html( $size ); ?></option>
+                <?php endforeach; ?>
+              <?php else : ?>
+                <option value="unique">Taille unique</option>
+              <?php endif; ?>
+            </select>
+          </div>
+          <div class="purchase-row">
+            <button class="add-button" id="addButton" type="button">
+              <?php echo esc_html( $is_preorder ? 'Précommander' : 'Ajouter au panier' ); ?>
+            </button>
+            <button class="wish-button" type="button" aria-label="Ajouter aux favoris">♡</button>
+          </div>
         </div>
-      <?php endif; ?>
 
-      <?php if ( $bagueship_is_upcoming ) : ?>
-        <form class="notify-form reveal" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-          <input type="hidden" name="action" value="bagueship_preorder_notify">
-          <input type="hidden" name="product_id" value="<?php echo esc_attr( get_the_ID() ); ?>">
-          <?php wp_nonce_field( 'bagueship_notify_' . get_the_ID(), 'bagueship_notify_nonce' ); ?>
-          <input type="email" name="bagueship_notify_email" placeholder="Votre email" autocomplete="email" required>
-          <button type="submit">Me prévenir</button>
+        <form id="cartForm" method="post" action="<?php echo esc_url( get_permalink( $product_id ) ); ?>" hidden>
+          <input type="hidden" name="add-to-cart" value="<?php echo esc_attr( $product ? $product->get_id() : $product_id ); ?>">
+          <?php if ( $sizes ) : ?>
+            <input type="hidden" name="variation_id" id="variationId" value="">
+            <input type="hidden" name="attribute_pa_taille" id="variationSize" value="">
+          <?php endif; ?>
         </form>
-        <?php if ( $bagueship_notify_result ) : ?>
-          <p class="notify-status <?php echo 'ok' === $bagueship_notify_result ? 'ok' : ''; ?>">
-            <?php
-            if ( 'ok' === $bagueship_notify_result ) {
-                echo esc_html( 'C’est noté. Vous serez prévenu dès que la précommande ouvrira.' );
-            } elseif ( 'email' === $bagueship_notify_result ) {
-                echo esc_html( 'Entrez une adresse email valide pour recevoir l’alerte.' );
-            } elseif ( 'closed' === $bagueship_notify_result ) {
-                echo esc_html( 'Cette alerte n’est plus disponible pour ce produit.' );
-            } else {
-                echo esc_html( 'Impossible d’enregistrer cette alerte pour le moment.' );
-            }
-            ?>
-          </p>
-        <?php endif; ?>
-        <span class="reassure reveal">Aucun paiement maintenant · un seul email lorsque la précommande ouvre</span>
       <?php else : ?>
-        <div class="cta reveal">
-          <button class="btn-buy" id="buy" type="button"><?php echo esc_html( $bagueship_is_preorder ? 'Précommander' : 'Ajouter au panier' ); ?></button>
-          <span class="reassure"><?php echo esc_html( $bagueship_is_preorder ? 'Prix soutien · Conditions de précommande disponibles au checkout' : 'Livraison et retours offerts · Garantie à vie' ); ?></span>
+        <div class="purchase-area">
+          <button class="add-button" type="button" disabled>Prochainement</button>
         </div>
-        <form id="bagueshipAddToCart" method="post" action="<?php echo esc_url( $bagueship_add_to_cart_url ); ?>" style="display:none;">
-          <input type="hidden" name="add-to-cart" value="<?php echo esc_attr( $product ? $product->get_id() : get_the_ID() ); ?>">
-          <input type="hidden" name="quantity" value="1">
-          <input type="hidden" name="variation_id" id="bagueshipVariationId" value="">
-          <input type="hidden" name="attribute_taille" id="bagueshipTaille" value="">
-        </form>
       <?php endif; ?>
     </div>
   </section>
 
-  <?php echo bagueship_footer_markup(); ?>
+  <section class="recommendations" aria-labelledby="recommendations-title">
+    <h2 class="recommendations-title" id="recommendations-title">Vous aimerez aussi</h2>
+    <div class="related-grid" style="--related-columns:<?php echo esc_attr( (string) max( 1, count( $related_products ) ) ); ?>">
+      <?php foreach ( array_slice( $related_products, 0, 4 ) as $related ) : ?>
+        <a class="related-card" href="<?php echo esc_url( $related['url'] ); ?>">
+          <div class="related-media">
+            <?php if ( $related['image'] ) : ?>
+              <img src="<?php echo esc_url( $related['image'] ); ?>" alt="<?php echo esc_attr( $related['name'] ); ?>">
+            <?php endif; ?>
+          </div>
+          <div class="related-name"><?php echo esc_html( $related['name'] ); ?></div>
+          <div class="related-price"><?php echo esc_html( $related['price'] ); ?></div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+</main>
 
 <script>
-(function(){
-  /* ---------- Scroll-driven rotation + kinetic text ---------- */
-  const zone = document.getElementById('top');
-  const productModel = document.getElementById('productModel');
-  const ringFade = document.getElementById('ringFade');
-  const hint = document.getElementById('hint');
-  const cueEls = [...document.querySelectorAll('.cue')];
+(()=>{
+  const select=document.getElementById('sizeSelect');
+  const button=document.getElementById('addButton');
+  const form=document.getElementById('cartForm');
+  const price=document.getElementById('productPrice');
+  const variationId=document.getElementById('variationId');
+  const variationSize=document.getElementById('variationSize');
+  const variations=<?php echo wp_json_encode( $variations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
+  const mainImage=document.getElementById('productMainImage');
+  const imageButtons=[...document.querySelectorAll('[data-product-image]')];
 
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  // ramp: 0 before a, 0->1 a..b, 1 b..c, 1->0 c..d
-  function band(p,a,b,c,d){
-    if(p<a||p>d) return 0;
-    if(p<b) return (p-a)/(b-a);
-    if(p>c) return 1-(p-c)/(d-c);
-    return 1;
-  }
-
-  let ticking=false;
-  function update(){
-    ticking=false;
-    const total = zone.offsetHeight - window.innerHeight;
-    const p = clamp(-zone.getBoundingClientRect().top / total, 0, 1);
-
-    const orbit = 25 + p * 920;
-    const elevation = 68 - p * 10;
-    const distance = 105 - p * 8;
-    if (productModel) {
-      productModel.setAttribute('camera-orbit', orbit.toFixed(2)+'deg '+elevation.toFixed(2)+'deg '+distance.toFixed(2)+'%');
-    }
-
-    ringFade.style.opacity = p>0.9 ? (1-(p-0.9)/0.1).toFixed(3) : 1;
-    hint.style.opacity = p<0.03 ? 1 : 0;
-
-    // text stages
-    const o0 = band(p, -1, -1, 0.15, 0.21);
-    const o1 = band(p, 0.30, 0.36, 0.45, 0.51);
-    const o2 = band(p, 0.55, 0.61, 0.70, 0.76);
-    const o3 = band(p, 0.81, 0.87, 1.1, 1.2);
-    const os=[o0,o1,o2,o3];
-    cueEls.forEach((el,i)=>{
-      const o=os[i];
-      el.style.opacity=o;
-      const y=(1-o)*16;
-      el.style.transform='translate(-50%,calc(-50% + '+y.toFixed(1)+'px))';
+  imageButtons.forEach(imageButton=>{
+    imageButton.addEventListener('click',()=>{
+      if(!mainImage)return;
+      mainImage.style.opacity='0';
+      window.setTimeout(()=>{
+        mainImage.src=imageButton.dataset.productImage;
+        mainImage.alt=imageButton.dataset.productAlt||'';
+        mainImage.style.opacity='1';
+      },180);
+      imageButtons.forEach(button=>{
+        const active=button===imageButton;
+        button.classList.toggle('is-active',active);
+        button.setAttribute('aria-pressed',active?'true':'false');
+      });
     });
-  }
-  function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(update); } }
-  window.addEventListener('scroll', onScroll, {passive:true});
-  window.addEventListener('resize', update);
-  update();
-
-  /* ---------- Reveal on scroll ---------- */
-  const io = new IntersectionObserver((entries)=>{
-    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, {threshold:0.18, rootMargin:'0px 0px -8% 0px'});
-  document.querySelectorAll('.reveal').forEach((el,i)=>{
-    el.style.transitionDelay = (Math.min(i,6)*0.06)+'s';
-    io.observe(el);
   });
 
-  /* ---------- Size selector ---------- */
-  const chips = document.getElementById('chips');
-  const circ = document.getElementById('circ');
-  const SIZES = <?php echo wp_json_encode( $bagueship_variation_sizes ? $bagueship_variation_sizes : array( 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68 ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
-  const VARIATIONS = <?php echo wp_json_encode( $bagueship_variations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
-  let selected = <?php echo (int) $bagueship_default_size; ?>;
-  if (chips && circ) SIZES.forEach(s=>{
-    const b=document.createElement('button');
-    b.className='chip'; b.type='button'; b.textContent=s;
-    b.setAttribute('aria-pressed', s===selected?'true':'false');
-    b.addEventListener('click',()=>{
-      selected=s;
-      [...chips.children].forEach(c=>c.setAttribute('aria-pressed', c===b?'true':'false'));
-      circ.innerHTML='Circonférence '+s+'&nbsp;mm';
-      const variation = VARIATIONS[String(s)];
-      if (variation) {
-        document.getElementById('bagueshipVariationId').value = variation.id;
-        document.getElementById('bagueshipTaille').value = s;
-        const amountValue = document.getElementById('bagueshipAmountValue');
-        if (amountValue) amountValue.innerHTML = variation.price;
+  if(select&&variationId){
+    select.addEventListener('change',()=>{
+      const selected=select.value;
+      const variation=variations[selected]||null;
+      variationId.value=variation?.id||'';
+      variationSize.value=selected;
+      if(variation?.price&&price)price.textContent=variation.price;
+    });
+  }
+
+  if(button&&form){
+    button.addEventListener('click',()=>{
+      if(variationId&&!variationId.value){
+        select.focus();
+        return;
       }
+      button.disabled=true;
+      button.textContent='Ajout…';
+      form.submit();
     });
-    chips.appendChild(b);
-  });
-
-  /* ---------- Buy ---------- */
-  const buy=document.getElementById('buy');
-  const form=document.getElementById('bagueshipAddToCart');
-  if (buy && form) buy.addEventListener('click',()=>{
-    if (buy.disabled) return;
-    const variation = VARIATIONS[String(selected)];
-    if (variation) {
-      document.getElementById('bagueshipVariationId').value = variation.id;
-      document.getElementById('bagueshipTaille').value = selected;
-    }
-    buy.classList.add('added');
-    buy.textContent=<?php echo wp_json_encode( $bagueship_is_preorder ? 'Précommande ajoutée ✓' : 'Ajouté au panier ✓' ); ?>;
-    form.submit();
-  });
+  }
 })();
 </script>
-  <?php wp_footer(); ?>
+
+<?php wp_footer(); ?>
 </body>
 </html>

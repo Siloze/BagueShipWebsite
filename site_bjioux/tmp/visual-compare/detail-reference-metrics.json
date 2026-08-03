@@ -1,0 +1,234 @@
+{
+  "reference": {
+    "viewport": {
+      "width": 1530,
+      "height": 1012
+    },
+    "top": {
+      "x": 0,
+      "y": 0,
+      "width": 1530,
+      "height": 689.171875,
+      "right": 1530,
+      "bottom": 689.171875
+    },
+    "media": {
+      "x": 0,
+      "y": 0,
+      "width": 895.8125,
+      "height": 722.875,
+      "right": 895.8125,
+      "bottom": 722.875
+    },
+    "stage": {
+      "x": 220.25,
+      "y": 72,
+      "width": 638.5625,
+      "height": 614.875,
+      "right": 858.8125,
+      "bottom": 686.875
+    },
+    "mainImage": {
+      "x": 220.25,
+      "y": 72,
+      "width": 638.5625,
+      "height": 614.875,
+      "right": 858.8125,
+      "bottom": 686.875
+    },
+    "mainImageStyle": {
+      "width": "638.562px",
+      "height": "614.875px",
+      "objectFit": "cover"
+    },
+    "firstThumb": {
+      "x": 64.25,
+      "y": 146,
+      "width": 120,
+      "height": 120,
+      "right": 184.25,
+      "bottom": 266
+    },
+    "collectionLabel": {
+      "x": 953.9375,
+      "y": 72,
+      "width": 514.859375,
+      "height": 12,
+      "right": 1468.796875,
+      "bottom": 84
+    },
+    "features": {
+      "x": 953.9375,
+      "y": 308.875,
+      "width": 423.0625,
+      "height": 146,
+      "right": 1377,
+      "bottom": 454.875
+    },
+    "purchase": {
+      "x": 953.9375,
+      "y": 502.875,
+      "width": 423.0625,
+      "height": 175,
+      "right": 1377,
+      "bottom": 677.875
+    },
+    "price": {
+      "x": 1393.796875,
+      "y": 111,
+      "width": 75,
+      "height": 45,
+      "right": 1468.796875,
+      "bottom": 156
+    },
+    "recommendations": {
+      "x": 0,
+      "y": 689.171875,
+      "width": 1530,
+      "height": 317.046875,
+      "right": 1530,
+      "bottom": 1006.21875
+    },
+    "firstRelated": {
+      "x": 79.546875,
+      "y": 778.171875,
+      "width": 297.609375,
+      "height": 213.046875,
+      "right": 377.15625,
+      "bottom": 991.21875
+    },
+    "firstRelatedMedia": {
+      "x": 79.546875,
+      "y": 778.171875,
+      "width": 297.609375,
+      "height": 171.03125,
+      "right": 377.15625,
+      "bottom": 949.203125
+    },
+    "firstRelatedPrice": {
+      "x": 79.546875,
+      "y": 977.203125,
+      "width": 297.609375,
+      "height": 14,
+      "right": 377.15625,
+      "bottom": 991.203125
+    },
+    "relatedColumns": "297.609px 297.625px 297.609px 297.625px"
+  },
+  "macbook": {
+    "viewport": {
+      "width": 1512,
+      "height": 870
+    },
+    "top": {
+      "x": 0,
+      "y": 0,
+      "width": 1512,
+      "height": 630,
+      "right": 1512,
+      "bottom": 630
+    },
+    "media": {
+      "x": 0,
+      "y": 0,
+      "width": 885.265625,
+      "height": 630,
+      "right": 885.265625,
+      "bottom": 630
+    },
+    "stage": {
+      "x": 219.5,
+      "y": 72,
+      "width": 628.765625,
+      "height": 522,
+      "right": 848.265625,
+      "bottom": 594
+    },
+    "mainImage": {
+      "x": 219.5,
+      "y": 72,
+      "width": 628.765625,
+      "height": 522,
+      "right": 848.265625,
+      "bottom": 594
+    },
+    "mainImageStyle": {
+      "width": "628.766px",
+      "height": "522px",
+      "objectFit": "cover"
+    },
+    "firstThumb": {
+      "x": 63.5,
+      "y": 146,
+      "width": 120,
+      "height": 120,
+      "right": 183.5,
+      "bottom": 266
+    },
+    "collectionLabel": {
+      "x": 942.71875,
+      "y": 72.02763366699219,
+      "width": 508.796875,
+      "height": 12,
+      "right": 1451.515625,
+      "bottom": 84.02763366699219
+    },
+    "features": {
+      "x": 942.71875,
+      "y": 281.0701904296875,
+      "width": 418.078125,
+      "height": 102,
+      "right": 1360.796875,
+      "bottom": 383.0701904296875
+    },
+    "purchase": {
+      "x": 942.71875,
+      "y": 428.497802734375,
+      "width": 418.078125,
+      "height": 147,
+      "right": 1360.796875,
+      "bottom": 575.497802734375
+    },
+    "price": {
+      "x": 1385.515625,
+      "y": 108.1064682006836,
+      "width": 66,
+      "height": 38.00000762939453,
+      "right": 1451.515625,
+      "bottom": 146.10647583007812
+    },
+    "recommendations": {
+      "x": 0,
+      "y": 630,
+      "width": 1512,
+      "height": 237.109375,
+      "right": 1512,
+      "bottom": 867.109375
+    },
+    "firstRelated": {
+      "x": 78.609375,
+      "y": 678,
+      "width": 301.25,
+      "height": 177.109375,
+      "right": 379.859375,
+      "bottom": 855.109375
+    },
+    "firstRelatedMedia": {
+      "x": 78.609375,
+      "y": 678,
+      "width": 301.25,
+      "height": 140.109375,
+      "right": 379.859375,
+      "bottom": 818.109375
+    },
+    "firstRelatedPrice": {
+      "x": 78.609375,
+      "y": 841.109375,
+      "width": 301.25,
+      "height": 14,
+      "right": 379.859375,
+      "bottom": 855.109375
+    },
+    "relatedColumns": "301.25px 301.266px 301.266px 301.266px"
+  }
+}

@@ -8,13 +8,17 @@
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
-<header class="site-header">
-  <div class="site-header__inner container">
-    <a class="brand" href="<?php echo esc_url( home_url( '/' ) ); ?>">BAGUESHIP</a>
-    <?php
-    if ( function_exists( 'bagueship_topbar_markup' ) ) {
-        echo bagueship_topbar_markup( bagueship_topbar_active_key() );
-    }
-    ?>
-  </div>
-</header>
+<?php
+if ( function_exists( 'bagueship_eclipse_topbar' ) ) {
+    echo bagueship_eclipse_topbar(
+        array(
+            'active'      => bagueship_topbar_active_key(),
+            'position'    => 'sticky',
+            'brand_color' => '#f7f7f7',
+            'items_color' => '#f7f7f7',
+            'cart_color'  => '#f7f7f7',
+            'background'  => 'rgba(2,2,2,.96)',
+        )
+    );
+}
+?>

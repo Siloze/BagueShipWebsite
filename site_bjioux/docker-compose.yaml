@@ -28,7 +28,7 @@ services:
       WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-bagueship}
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-bagueship}
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-bagueship}
-      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:-http://locallm.fr/bagueship}
+      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:-http://localhost:8080}
       WORDPRESS_CONFIG_EXTRA: |
         define( 'DISALLOW_FILE_EDIT', true );
         define( 'WP_MEMORY_LIMIT', '256M' );
@@ -49,9 +49,10 @@ services:
     volumes:
       - wordpress_data:/var/www/html
       - ./wordpress/wp-content:/var/www/html/wp-content
+    ports:
+      - "${WORDPRESS_PORT:-8080}:80"
     networks:
       - internal
-      - edge
 
   wpcli:
     image: wordpress:cli-2.12-php8.3
@@ -66,7 +67,7 @@ services:
       WORDPRESS_DB_USER: ${WORDPRESS_DB_USER:-bagueship}
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-bagueship}
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-bagueship}
-      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:-http://locallm.fr/bagueship}
+      WORDPRESS_SITE_URL: ${WORDPRESS_SITE_URL:-http://localhost:8080}
       WORDPRESS_ADMIN_USER: ${WORDPRESS_ADMIN_USER:-admin}
       WORDPRESS_ADMIN_PASSWORD: ${WORDPRESS_ADMIN_PASSWORD:-admin12345}
       WORDPRESS_ADMIN_EMAIL: ${WORDPRESS_ADMIN_EMAIL:-admin@bagueship.local}
@@ -98,6 +99,3 @@ volumes:
 networks:
   internal:
     driver: bridge
-  edge:
-    external: true
-    name: edge

@@ -1,0 +1,94 @@
+{
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "document": {
+    "scrollWidth": 1920,
+    "scrollHeight": 1080,
+    "bodyScrollHeight": 1080
+  },
+  "elements": {
+    ".eclipse-home": {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 1080,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "normal"
+    },
+    ".home-nav": {
+      "x": 0,
+      "y": 0,
+      "width": 1920,
+      "height": 92,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "normal"
+    },
+    ".wordmark": {
+      "x": 73.90625,
+      "y": 36,
+      "width": 133.8125,
+      "height": 20,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "20px",
+      "lineHeight": "20px"
+    },
+    ".hero-kicker": {
+      "x": 73.90625,
+      "y": 280.796875,
+      "width": 310.15625,
+      "height": 19,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "15px",
+      "lineHeight": "normal"
+    },
+    ".hero-title": {
+      "x": 73.90625,
+      "y": 321.796875,
+      "width": 780.9609375,
+      "height": 261.34375,
+      "fontFamily": "\"Eclipse Display\", \"Arial Narrow\", sans-serif",
+      "fontSize": "159.36px",
+      "lineHeight": "130.675px"
+    },
+    ".hero-description": {
+      "x": 73.90625,
+      "y": 611.140625,
+      "width": 354.875,
+      "height": 77.671875,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "14px",
+      "lineHeight": "25.9px"
+    },
+    ".universe-link": {
+      "x": 73.90625,
+      "y": 720.8125,
+      "width": 222.46875,
+      "height": 27,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "13px",
+      "lineHeight": "normal"
+    },
+    ".eclipse-mark": {
+      "x": 639.109375,
+      "y": 337.5,
+      "width": 540,
+      "height": 540,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "normal"
+    },
+    ".collection-index": {
+      "x": 73.90625,
+      "y": 999,
+      "width": 783.1875,
+      "height": 51,
+      "fontFamily": "\"Eclipse Sans\", \"Helvetica Neue\", Arial, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "normal"
+    }
+  }
+}
